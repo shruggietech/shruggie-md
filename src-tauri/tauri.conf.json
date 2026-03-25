@@ -40,42 +40,24 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "windows": {
-      "wix": {
-        "template": null,
-        "fragmentPaths": [],
-        "componentGroupRefs": [],
-        "featureGroupRefs": [],
-        "fileAssociations": [
-          {
-            "ext": "md",
-            "name": "Markdown File",
-            "description": "Markdown document"
-          },
-          {
-            "ext": "markdown",
-            "name": "Markdown File",
-            "description": "Markdown document"
-          }
-        ]
+    "license": "Apache-2.0",
+    "category": "DeveloperTool",
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkdn", "mkd"],
+        "name": "Markdown File",
+        "description": "Markdown document",
+        "mimeType": "text/markdown",
+        "role": "Editor"
       }
-    },
-    "macOS": {
-      "fileAssociations": [
-        {
-          "ext": ["md", "markdown"],
-          "name": "Markdown File",
-          "role": "Editor"
-        }
-      ]
-    },
+    ],
     "linux": {
-      "desktop": {
-        "categories": ["TextEditor", "Utility"],
-        "mimeTypes": ["text/markdown"]
-      },
       "appimage": {
         "bundleMediaFramework": false
+      },
+      "deb": {
+        "section": "editors",
+        "depends": []
       }
     }
   }
