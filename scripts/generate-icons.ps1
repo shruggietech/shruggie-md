@@ -36,7 +36,7 @@ try {
         if (-not (Test-Path $destDir)) {
             New-Item -ItemType Directory -Path $destDir -Force | Out-Null
         }
-        magick convert $Source -resize "${Size}x${Size}" $Destination
+        magick $Source -resize "${Size}x${Size}" -alpha on "PNG32:$Destination"
         if ($LASTEXITCODE -ne 0) { throw "magick failed for $Destination" }
         Write-Host "  Generated $Destination (${Size}x${Size})"
         $script:count++

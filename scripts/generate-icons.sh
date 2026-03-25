@@ -33,7 +33,7 @@ gen() {
   local size="$2"
   local dest="$3"
   mkdir -p "$(dirname "$dest")"
-  magick convert "$src" -resize "${size}x${size}" "$dest"
+  magick "$src" -resize "${size}x${size}" -alpha on "PNG32:$dest"
   echo "  Generated $dest (${size}x${size})"
   count=$((count + 1))
 }
