@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-25
+
 ### Added
 
 - **Save As** support with native file dialog on desktop (Tauri) and browser download fallback on web/PWA/extension targets. New keyboard shortcut: `Ctrl/Cmd+Shift+S`.
@@ -72,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/shruggietech/shruggie-md/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/shruggietech/shruggie-md/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/shruggietech/shruggie-md/releases/tag/v0.1.0
