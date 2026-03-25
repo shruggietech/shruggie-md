@@ -1,5 +1,3 @@
-use tauri::Manager;
-
 /// Tauri command: returns CLI arguments (file path and/or URL) passed at launch.
 #[tauri::command]
 fn get_cli_args() -> (Option<String>, Option<String>) {

@@ -835,7 +835,7 @@ These rules apply in file viewing mode and (by default) in library mode. Library
 
 | Platform | Path |
 |----------|------|
-| Windows | `%LOCALAPPDATA%\shruggie-md\` |
+| Windows | `%LOCALAPPDATA%\shruggie-tech\shruggie-md\` |
 | Linux | `$XDG_CONFIG_HOME/shruggie-md/` (default: `~/.config/shruggie-md/`) |
 | macOS | `~/Library/Application Support/shruggie-md/` |
 | Chrome extension | `chrome.storage.sync` |

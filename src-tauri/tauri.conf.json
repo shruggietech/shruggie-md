@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Shruggie Markdown",
   "version": "0.1.0",
-  "identifier": "com.shruggietech.shruggie-md",
+  "identifier": "com.shruggie-tech.shruggie-md",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -25,9 +25,7 @@
   },
   "plugins": {
     "fs": {
-      "scope": {
-        "allow": ["**"]
-      }
+      "requireLiteralLeadingDot": false
     }
   },
   "bundle": {
@@ -51,6 +49,17 @@
         "role": "Editor"
       }
     ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "displayLanguageSelector": false
+      },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      }
+    },
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
