@@ -5,6 +5,7 @@ import { Input } from "../common/Input";
 import { Select } from "../common/Select";
 import { Toggle } from "../common/Toggle";
 import { Button } from "../common/Button";
+import { Tooltip } from "../common/Tooltip";
 import type { PlatformCapabilities, PlatformAdapter } from "../../platform/platform";
 import type { ColorMode, VisualStyle } from "../../hooks/useTheme";
 
@@ -48,6 +49,13 @@ const fieldLabelStyle: React.CSSProperties = {
   color: "var(--color-text-primary)",
   flexShrink: 0,
   minWidth: 140,
+};
+
+const fieldHintStyle: React.CSSProperties = {
+  fontSize: "var(--font-size-xs)",
+  fontFamily: "var(--font-ui)",
+  color: "var(--color-text-secondary)",
+  marginTop: 2,
 };
 
 const fieldControlStyle: React.CSSProperties = {
@@ -129,25 +137,27 @@ function ExtensionEditor({
             }}
           >
             {ext}
-            <button
-              type="button"
-              aria-label={`Remove ${ext}`}
-              onClick={() => handleRemove(ext)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                color: "inherit",
-                fontSize: "var(--font-size-sm)",
-                lineHeight: 1,
-              }}
-            >
-              &times;
-            </button>
+            <Tooltip content={`Remove ${ext}`}>
+              <button
+                type="button"
+                aria-label={`Remove ${ext}`}
+                onClick={() => handleRemove(ext)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                  color: "inherit",
+                  fontSize: "var(--font-size-sm)",
+                  lineHeight: 1,
+                }}
+              >
+                &times;
+              </button>
+            </Tooltip>
           </span>
         ))}
       </div>
@@ -261,20 +271,20 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         <p style={descriptionStyle}>Customize the look and feel of the application.</p>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Color mode</span>
+          <div><span style={fieldLabelStyle}>Color mode</span><div style={fieldHintStyle}>Choose light, dark, or follow your OS preference</div></div>
           <div style={{ display: "flex", gap: 0, ...fieldControlStyle }}>
             {modeButtons.map((btn, idx) => {
               const isActive = config.appearance.colorMode === btn.value;
               const isFirst = idx === 0;
               const isLast = idx === modeButtons.length - 1;
               return (
-                <button
-                  key={btn.value}
-                  type="button"
-                  data-testid={`mode-${btn.value}`}
-                  aria-label={`${btn.label} color mode`}
-                  aria-pressed={config.appearance.colorMode === btn.value}
-                  onClick={() => handleColorMode(btn.value)}
+                <Tooltip key={btn.value} content={`Switch to ${btn.label.toLowerCase()} mode`}>
+                  <button
+                    type="button"
+                    data-testid={`mode-${btn.value}`}
+                    aria-label={`${btn.label} color mode`}
+                    aria-pressed={config.appearance.colorMode === btn.value}
+                    onClick={() => handleColorMode(btn.value)}
                   style={{
                     flex: 1,
                     padding: "var(--space-1) var(--space-2)",
@@ -298,13 +308,14 @@ export function Settings({ capabilities, platform }: SettingsProps) {
                 >
                   {btn.label}
                 </button>
+                </Tooltip>
               );
             })}
           </div>
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Visual style</span>
+          <div><span style={fieldLabelStyle}>Visual style</span><div style={fieldHintStyle}>Accent palette applied to the UI chrome</div></div>
           <div style={fieldControlStyle}>
             <Select
               value={config.appearance.visualStyle}
@@ -326,7 +337,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         <p style={descriptionStyle}>Configure the markdown editor behavior and appearance.</p>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Font family</span>
+          <div><span style={fieldLabelStyle}>Font family</span><div style={fieldHintStyle}>CSS font stack used in the editor pane</div></div>
           <div style={fieldControlStyle}>
             <Input
               value={config.editor.fontFamily}
@@ -337,7 +348,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Font size</span>
+          <div><span style={fieldLabelStyle}>Font size</span><div style={fieldHintStyle}>Editor text size in pixels (8–32)</div></div>
           <div style={fieldControlStyle}>
             <input
               type="number"
@@ -365,7 +376,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Line height</span>
+          <div><span style={fieldLabelStyle}>Line height</span><div style={fieldHintStyle}>Editor line spacing multiplier (1.0–3.0)</div></div>
           <div style={fieldControlStyle}>
             <input
               type="number"
@@ -393,7 +404,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Show line numbers</span>
+          <div><span style={fieldLabelStyle}>Show line numbers</span><div style={fieldHintStyle}>Display line numbers in the editor gutter</div></div>
           <Toggle
             checked={config.editor.showLineNumbers}
             onChange={(v) => updateConfig("editor", { showLineNumbers: v })}
@@ -401,7 +412,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Word wrap</span>
+          <div><span style={fieldLabelStyle}>Word wrap</span><div style={fieldHintStyle}>Wrap long lines instead of horizontal scrolling</div></div>
           <Toggle
             checked={config.editor.wordWrap}
             onChange={(v) => updateConfig("editor", { wordWrap: v })}
@@ -409,7 +420,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Linting enabled</span>
+          <div><span style={fieldLabelStyle}>Linting enabled</span><div style={fieldHintStyle}>Run a linter on markdown content in real time</div></div>
           <Toggle
             checked={config.editor.lintingEnabled}
             onChange={(v) => updateConfig("editor", { lintingEnabled: v })}
@@ -417,7 +428,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Active linter</span>
+          <div><span style={fieldLabelStyle}>Active linter</span><div style={fieldHintStyle}>Which markdown linter to use when linting is on</div></div>
           <div style={fieldControlStyle}>
             <Select
               value={config.editor.activeLinter}
@@ -442,7 +453,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         <p style={descriptionStyle}>Adjust the markdown preview rendering.</p>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Font family</span>
+          <div><span style={fieldLabelStyle}>Font family</span><div style={fieldHintStyle}>CSS font stack used in the preview pane</div></div>
           <div style={fieldControlStyle}>
             <Input
               value={config.preview.fontFamily}
@@ -453,7 +464,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Font size</span>
+          <div><span style={fieldLabelStyle}>Font size</span><div style={fieldHintStyle}>Preview text size in pixels (8–32)</div></div>
           <div style={fieldControlStyle}>
             <input
               type="number"
@@ -481,7 +492,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         </div>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Line height</span>
+          <div><span style={fieldLabelStyle}>Line height</span><div style={fieldHintStyle}>Preview line spacing multiplier (1.0–3.0)</div></div>
           <div style={fieldControlStyle}>
             <input
               type="number"
@@ -515,7 +526,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         <p style={descriptionStyle}>Choose the rendering engine for markdown content.</p>
 
         <div style={fieldRowStyle}>
-          <span style={fieldLabelStyle}>Engine</span>
+          <div><span style={fieldLabelStyle}>Engine</span><div style={fieldHintStyle}>Markdown-to-HTML rendering library</div></div>
           <div style={fieldControlStyle}>
             <Select
               value={config.engine.activeEngine}
@@ -552,11 +563,13 @@ export function Settings({ capabilities, platform }: SettingsProps) {
           <p style={descriptionStyle}>Configure the file library for browsing markdown files.</p>
 
           <div style={fieldRowStyle}>
-            <span style={fieldLabelStyle}>Mount directory</span>
+            <div><span style={fieldLabelStyle}>Mount directory</span><div style={fieldHintStyle}>Root folder scanned for markdown files</div></div>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", ...fieldControlStyle }}>
-              <Button variant="accent" onClick={handleMountDirectory}>
-                Choose...
-              </Button>
+              <Tooltip content="Select a directory to browse for markdown files">
+                <Button variant="accent" onClick={handleMountDirectory}>
+                  Choose...
+                </Button>
+              </Tooltip>
               <span
                 style={{
                   fontSize: "var(--font-size-sm)",
@@ -573,7 +586,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
           </div>
 
           <div style={fieldRowStyle}>
-            <span style={fieldLabelStyle}>Recursive scan</span>
+            <div><span style={fieldLabelStyle}>Recursive scan</span><div style={fieldHintStyle}>Include files in sub-directories</div></div>
             <Toggle
               checked={config.library.recursive}
               onChange={(v) => updateConfig("library", { recursive: v })}
@@ -581,7 +594,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
           </div>
 
           <div style={fieldRowStyle}>
-            <span style={fieldLabelStyle}>Show hidden files</span>
+            <div><span style={fieldLabelStyle}>Show hidden files</span><div style={fieldHintStyle}>Include dot-prefixed files and folders</div></div>
             <Toggle
               checked={config.library.showHidden}
               onChange={(v) => updateConfig("library", { showHidden: v })}
@@ -589,7 +602,7 @@ export function Settings({ capabilities, platform }: SettingsProps) {
           </div>
 
           <div style={fieldRowStyle}>
-            <span style={fieldLabelStyle}>Independent extensions</span>
+            <div><span style={fieldLabelStyle}>Independent extensions</span><div style={fieldHintStyle}>Use a separate extension list for library scanning</div></div>
             <Toggle
               checked={config.library.useIndependentExtensions}
               onChange={(v) =>
@@ -613,9 +626,11 @@ export function Settings({ capabilities, platform }: SettingsProps) {
 
       {/* ── Reset ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="ghost" onClick={resetConfig}>
-          Reset to defaults
-        </Button>
+        <Tooltip content="Restore all settings to their default values">
+          <Button variant="ghost" onClick={resetConfig}>
+            Reset to defaults
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );

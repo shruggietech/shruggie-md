@@ -1,17 +1,35 @@
 import { useState, useCallback, useRef } from "react";
-import { getPlatform } from "@/platform/platform";
 import type { PlatformAdapter, PlatformCapabilities } from "@/platform/platform";
 
 export interface UseFileSaveReturn {
   saveFile: (content: string, filePath: string | null) => Promise<void>;
+  saveFileAs: (content: string, defaultName?: string) => Promise<string | null>;
   isSaving: boolean;
   lastSaved: Date | null;
 }
 
 /**
- * Provides file save functionality.
- * - Desktop (Tauri): writes content to the source file path via platform adapter
- * - Browser: triggers a file download via Blob + hidden anchor
+ * Triggers a browser file save via Blob + hidden anchor.
+ * Used as the final fallback when no native dialog is available.
+ */
+function triggerBrowserSave(content: string, fileName: string, mimeType: string): void {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.style.display = "none";
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Provides Save and Save As functionality.
+ * - Desktop (Tauri): Save overwrites in place; Save As opens native dialog.
+ * - Browser: Save writes to existing File System Access handle or falls back to
+ *   browser save; Save As uses showSaveFilePicker or falls back to browser save.
  */
 export function useFileSave(
   platform: PlatformAdapter | null,
@@ -19,7 +37,6 @@ export function useFileSave(
 ): UseFileSaveReturn {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const anchorRef = useRef<HTMLAnchorElement | null>(null);
 
   const saveFile = useCallback(
     async (content: string, filePath: string | null) => {
@@ -29,23 +46,11 @@ export function useFileSave(
           // Desktop: write to file via platform adapter
           await platform.writeFile(filePath, content);
         } else {
-          // Browser: trigger a download
-          const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-          const url = URL.createObjectURL(blob);
-
-          if (!anchorRef.current) {
-            anchorRef.current = document.createElement("a");
-          }
-          const anchor = anchorRef.current;
-          anchor.href = url;
-          anchor.download = filePath
+          // Browser: trigger a save via hidden anchor
+          const name = filePath
             ? filePath.replace(/\\/g, "/").split("/").pop() ?? "document.md"
             : "document.md";
-          anchor.style.display = "none";
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-          URL.revokeObjectURL(url);
+          triggerBrowserSave(content, name, "text/markdown");
         }
         setLastSaved(new Date());
       } finally {
@@ -55,5 +60,34 @@ export function useFileSave(
     [platform, capabilities.hasFilesystem],
   );
 
-  return { saveFile, isSaving, lastSaved };
+  const saveFileAs = useCallback(
+    async (content: string, defaultName?: string): Promise<string | null> => {
+      setIsSaving(true);
+      try {
+        const name = defaultName ?? "document.md";
+
+        if (platform) {
+          // Try native save dialog
+          const chosenPath = await platform.saveFileDialog(name, [".md", ".markdown"]);
+          if (chosenPath) {
+            await platform.writeFile(chosenPath, content);
+            setLastSaved(new Date());
+            return chosenPath;
+          }
+          // User cancelled — no save
+          if (capabilities.hasFilesystem) return null;
+        }
+
+        // Browser fallback: trigger save via hidden anchor
+        triggerBrowserSave(content, name, "text/markdown");
+        setLastSaved(new Date());
+        return null;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [platform, capabilities.hasFilesystem],
+  );
+
+  return { saveFile, saveFileAs, isSaving, lastSaved };
 }

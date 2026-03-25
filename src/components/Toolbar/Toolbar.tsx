@@ -1,5 +1,5 @@
-import { Eye, Columns2, FolderOpen, Settings, Save, FileCode, FileText, RefreshCw, Search } from "lucide-react";
-import { Button } from "../common";
+import { Eye, Columns2, FolderOpen, Settings, FileCode, FileText, RefreshCw, Search } from "lucide-react";
+import { Button, SplitButton } from "../common";
 import { UrlInput } from "./UrlInput";
 import type { ViewMode } from "@/hooks/useViewMode";
 
@@ -10,6 +10,8 @@ export interface ToolbarProps {
   hasFilesystem: boolean;
   // File operations
   onSave?: () => void;
+  onSaveAs?: () => void;
+  hasFilePath?: boolean;
   canSave?: boolean;
   isSaving?: boolean;
   lastSaved?: Date | null;
@@ -65,6 +67,8 @@ export function Toolbar({
   fileName,
   hasFilesystem,
   onSave,
+  onSaveAs,
+  hasFilePath = false,
   canSave = false,
   isSaving = false,
   lastSaved = null,
@@ -244,12 +248,13 @@ export function Toolbar({
 
           {/* Action buttons */}
           <div data-testid="toolbar-actions" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center" }}>
-            {onSave && (
-              <Button
-                icon={Save}
-                tooltip="Save (Ctrl+S)"
-                onClick={onSave}
+            {(onSave || onSaveAs) && (
+              <SplitButton
+                hasPath={hasFilePath}
+                onSave={onSave ?? (() => {})}
+                onSaveAs={onSaveAs ?? (() => {})}
                 disabled={!canSave || isSaving}
+                isSaving={isSaving}
               />
             )}
             {onExportHtml && (

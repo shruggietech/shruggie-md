@@ -21,6 +21,7 @@ export interface PlatformAdapter {
   watchFile(path: string, callback: (content: string) => void): () => void;
   openFileDialog(extensions: string[]): Promise<string | null>;
   openDirectoryDialog(): Promise<string | null>;
+  saveFileDialog(defaultName?: string, extensions?: string[]): Promise<string | null>;
   listDirectory(path: string, recursive: boolean): Promise<DirectoryEntry[]>;
   getStoragePath(): string;
   readConfig(): Promise<Record<string, unknown>>;

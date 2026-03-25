@@ -30,4 +30,7 @@ export interface Config {
     useIndependentExtensions: boolean;
     independentExtensions: string[];
   };
+  general: {
+    lastViewMode: "full-view" | "split-view" | null;
+  };
 }

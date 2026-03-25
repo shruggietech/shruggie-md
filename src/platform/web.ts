@@ -26,6 +26,10 @@ export class WebAdapter implements PlatformAdapter {
     return null;
   }
 
+  async saveFileDialog(_defaultName?: string, _extensions?: string[]): Promise<string | null> {
+    return null;
+  }
+
   async listDirectory(_path: string, _recursive: boolean): Promise<DirectoryEntry[]> {
     // Library is desktop-only; web returns empty
     return [];

@@ -202,26 +202,30 @@ export interface UseHtmlExportReturn {
 
 /**
  * Hook to export markdown as a self-contained HTML file.
- * - Desktop: opens a save-as dialog via platform adapter
- * - Browser: triggers a download
+ * - Desktop: opens a Save As dialog via platform adapter
+ * - Browser: falls back to browser file save
  */
 export function useHtmlExport(
   platform: PlatformAdapter | null,
   capabilities: PlatformCapabilities,
 ): UseHtmlExportReturn {
   const exportHtml = useCallback(
-    (source: string, engineId: string) => {
+    async (source: string, engineId: string) => {
       const html = generateHtmlDocument(source, engineId);
 
-      if (capabilities.hasFilesystem && platform) {
-        // Desktop: write via platform adapter (save-as)
-        platform.writeFile("export.html", html).catch(() => {
-          // Fallback to browser download
-          triggerDownload(html);
-        });
-      } else {
-        triggerDownload(html);
+      if (platform) {
+        // Try native save dialog first
+        const chosenPath = await platform.saveFileDialog("export.html", [".html", ".htm"]);
+        if (chosenPath) {
+          await platform.writeFile(chosenPath, html);
+          return;
+        }
+        // User cancelled on desktop — do nothing
+        if (capabilities.hasFilesystem) return;
       }
+
+      // Browser fallback
+      triggerBrowserSave(html);
     },
     [platform, capabilities.hasFilesystem],
   );
@@ -229,7 +233,7 @@ export function useHtmlExport(
   return { exportHtml };
 }
 
-function triggerDownload(html: string): void {
+function triggerBrowserSave(html: string): void {
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

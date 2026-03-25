@@ -6,4 +6,5 @@ export { Tooltip } from "./Tooltip";
 export { Divider } from "./Divider";
 export { Toggle } from "./Toggle";
 export { Select } from "./Select";
+export { SplitButton } from "./SplitButton";
 export { InstallPrompt } from "./InstallPrompt";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Globe, Info, Loader2 } from "lucide-react";
-import { Button, Modal } from "../common";
+import { Button, Modal, Tooltip } from "../common";
 
 export interface UrlInputProps {
   onSubmit: (url: string) => void;
@@ -88,26 +88,28 @@ export function UrlInput({ onSubmit, isLoading, error }: UrlInputProps) {
             </span>
           )}
 
-          <button
-            data-testid="url-info-button"
-            type="button"
-            onClick={() => setShowInfo(true)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--color-text-secondary)",
-              padding: 2,
-              borderRadius: "50%",
-              fontSize: "var(--font-size-sm)",
-            }}
-            title="Usage info"
-          >
-            <Info size={14} />
-          </button>
+          <Tooltip content="Usage info">
+            <button
+              data-testid="url-info-button"
+              type="button"
+              onClick={() => setShowInfo(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--color-text-secondary)",
+                padding: 2,
+                borderRadius: "50%",
+                fontSize: "var(--font-size-sm)",
+              }}
+              aria-label="Usage info"
+            >
+              <Info size={14} />
+            </button>
+          </Tooltip>
         </div>
       )}
 

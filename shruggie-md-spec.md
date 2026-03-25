@@ -416,9 +416,11 @@ All buttons use `--radius-sm` border radius. Minimum tap target: `32px` square. 
 
 **Panels and dividers.** Pane dividers (e.g., the split-view separator) are `1px solid --color-border-primary`. The divider is draggable in split-view to resize pane proportions. Drag affordance: on hover, the divider thickens to `3px` and changes color to `--color-accent-subtle`.
 
-**Tooltips.** Background: `--color-bg-active`. Text: `--color-text-primary`. Font size: `--font-size-xs`. Border radius: `--radius-sm`. Padding: `--space-1` vertical, `--space-2` horizontal. Appear after a 400ms hover delay, fade in over 120ms.
+**Tooltips.** Background: `--color-bg-active`. Text: `--color-text-primary`. Font size: `--font-size-xs`. Border radius: `--radius-sm`. Padding: `--space-1` vertical, `--space-2` horizontal. Appear after a 400ms hover delay, fade in over 120ms. **Every interactive element** (buttons, toggles, icon-buttons, extension-chip remove buttons) must be wrapped in a tooltip. No interactive control may exist without a discoverable label.
 
 **Modals.** Centered overlay with a backdrop of `rgba(0,0,0,0.5)`. Modal surface: `--color-bg-secondary`, `--radius-md` border radius, `1px solid --color-border-primary`. Max width: `480px`. Content padding: `--space-6`. Entrance animation: fade in + scale from 0.97 to 1.0 over 150ms.
+
+**SplitButton.** A compound button used for Save / Save As. When a file path is established, the button renders as a split: the primary region triggers Save (`Ctrl/Cmd+S`), and a chevron dropdown exposes a "Save As…" menu item (`Ctrl/Cmd+Shift+S`). When no file path is established, the button renders as a plain icon button that triggers Save As directly. Styling follows ghost button conventions.
 
 <a name="47-motion-and-transitions" id="47-motion-and-transitions"></a>
 
@@ -471,13 +473,15 @@ The application has four top-level views, accessed via the toolbar or keyboard s
 | Library | `Ctrl/Cmd+3` | File management table. Desktop only. |
 | Settings | `Ctrl/Cmd+,` | Configuration panel. |
 
+The initial view mode is platform-aware: desktop (Tauri) defaults to split-view; web, PWA, and Chrome extension default to full-view. If the user has previously selected a view mode (full-view or split-view), that choice is persisted in `general.lastViewMode` and restored on next launch. Library and settings views are transient navigation and are never persisted.
+
 <a name="52-full-view-mode" id="52-full-view-mode"></a>
 
 ### 5.2. Full-View Mode
 
 <div style="text-align:justify">
 
-Full-view is the default. The rendered markdown fills the viewport below the toolbar. Content is horizontally centered with a maximum reading width of `720px` and horizontal padding of `--space-8` on each side. This produces a comfortable, Notion-like reading column that prevents excessively long line lengths on wide displays.
+Full-view is the default on web and PWA targets. On desktop (Tauri), the default is split-view unless overridden by a persisted `general.lastViewMode` preference. The rendered markdown fills the viewport below the toolbar. Content is horizontally centered with a maximum reading width of `720px` and horizontal padding of `--space-8` on each side. This produces a comfortable, Notion-like reading column that prevents excessively long line lengths on wide displays.
 
 </div>
 
@@ -507,7 +511,7 @@ The library view replaces the editor/preview area with a sortable, filterable da
 
 <div style="text-align:justify">
 
-Settings are presented as a single scrollable panel organized into labeled sections. Each section is a card-like region with a section heading, a brief description, and the associated controls. The visual treatment follows the Apple System Settings / Linear Settings pattern: clean vertical stacking with generous whitespace between sections and no tab navigation within settings.
+Settings are presented as a single scrollable panel organized into labeled sections. Each section is a card-like region with a section heading, a brief description, and the associated controls. Every individual setting field includes an inline description (small hint text below the label) explaining what it does. The visual treatment follows the Apple System Settings / Linear Settings pattern: clean vertical stacking with generous whitespace between sections and no tab navigation within settings.
 
 </div>
 
@@ -547,13 +551,13 @@ Editing is available in split-view mode. The CodeMirror editor provides the edit
 
 </div>
 
-On desktop, edits can be saved back to the source file via `Ctrl/Cmd+S`. The save operation writes the editor content to disk atomically (write to temp file, then rename). In the Chrome extension and PWA targets, the save operation downloads the file to the user's default download location.
+On desktop, edits can be saved back to the source file via `Ctrl/Cmd+S` (Save) or written to a new location via `Ctrl/Cmd+Shift+S` (Save As). Save overwrites the current file atomically (write to temp file, then rename). Save As opens a native file dialog to choose a destination; on success the working file path updates to the new location. In the Chrome extension and PWA targets, Save As triggers a browser download of the file. A context-aware SplitButton in the toolbar adapts its presentation: when a file path is established it shows Save (primary) + Save As (dropdown); when no path is established it shows a single Save As icon button.
 
 <a name="63-converting" id="63-converting"></a>
 
 ### 6.3. Converting
 
-**Markdown to HTML.** The compiled HTML output (the same output rendered in the preview pane) is available for export via `Ctrl/Cmd+Shift+H` or the toolbar. The exported HTML is a self-contained file with all styles inlined. No external stylesheet references are included.
+**Markdown to HTML.** The compiled HTML output (the same output rendered in the preview pane) is available for export via `Ctrl/Cmd+Shift+H` or the toolbar. On desktop, a native save dialog is presented to choose the destination file. On web/PWA/extension targets, the export falls back to a browser download. The exported HTML is a self-contained file with all styles inlined. No external stylesheet references are included.
 
 **Markdown to PDF.** PDF export uses the browser's native print pathway:
 
@@ -787,6 +791,12 @@ Configuration is stored as JSON. On desktop (Tauri), preferences are read from a
 </div>
 
 All configuration keys have compiled defaults in the application source. User-set values override defaults. Unknown keys in persisted configuration are silently ignored for forward compatibility.
+
+### 10.1.1. General Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| Last view mode | `"full-view"` \| `"split-view"` \| `null` | `null` | Persisted user preference for the initial view mode. When `null`, the platform-aware default applies (split-view on desktop, full-view on web). Only `full-view` and `split-view` are persisted; transient views (library, settings) are never stored. |
 
 <a name="102-theme-and-appearance" id="102-theme-and-appearance"></a>
 

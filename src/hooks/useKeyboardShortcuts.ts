@@ -5,6 +5,7 @@ export interface KeyboardShortcutCallbacks {
   onViewChange: (view: ViewMode) => void;
   onOpenFile?: () => void;
   onSave?: () => void;
+  onSaveAs?: () => void;
   onExportHtml?: () => void;
   onExportPdf?: () => void;
   hasFilesystem: boolean;
@@ -26,6 +27,7 @@ export function useKeyboardShortcuts({
   onViewChange,
   onOpenFile,
   onSave,
+  onSaveAs,
   onExportHtml,
   onExportPdf,
   hasFilesystem,
@@ -52,6 +54,13 @@ export function useKeyboardShortcuts({
             if (onExportPdf) {
               e.preventDefault();
               onExportPdf();
+            }
+            return;
+          case "S":
+          case "s":
+            if (onSaveAs) {
+              e.preventDefault();
+              onSaveAs();
             }
             return;
         }
@@ -96,5 +105,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onViewChange, onOpenFile, onSave, onExportHtml, onExportPdf, hasFilesystem]);
+  }, [onViewChange, onOpenFile, onSave, onSaveAs, onExportHtml, onExportPdf, hasFilesystem]);
 }

@@ -33,4 +33,7 @@ export const defaultConfig: Config = {
     useIndependentExtensions: false,
     independentExtensions: [],
   },
+  general: {
+    lastViewMode: null,
+  },
 };

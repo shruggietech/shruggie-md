@@ -53,12 +53,8 @@ Start by opening a file (**Ctrl+O** / **Cmd+O**) or just enjoy this preview.
 `;
 
 function AppShell() {
-  const { viewMode, setViewMode } = useViewMode("full-view");
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string | null>(null);
-  const [content, setContent] = useState(defaultContent);
-  const [isRemote, setIsRemote] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { config, updateConfig } = useConfig();
+
   const [platform, setPlatform] = useState<PlatformAdapter | null>(null);
   const [capabilities, setCapabilities] = useState<PlatformCapabilities>({
     hasFilesystem: false,
@@ -66,17 +62,6 @@ function AppShell() {
     hasNativeDialogs: false,
     hasCliArgs: false,
   });
-
-  const { config } = useConfig();
-
-  // Apply live CSS custom property updates from config
-  useConfigEffects(config);
-
-  const previousView = useRef<ViewMode>(viewMode);
-
-  useEffect(() => {
-    previousView.current = viewMode;
-  }, [viewMode]);
 
   // Initialize platform
   useEffect(() => {
@@ -91,8 +76,36 @@ function AppShell() {
     };
   }, []);
 
+  // Compute initial view mode: persisted preference > platform-aware default
+  const resolvedInitialView = config.general.lastViewMode
+    ?? (capabilities.hasFilesystem ? "split-view" : "full-view");
+
+  const { viewMode, setViewMode } = useViewMode(resolvedInitialView);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | null>(null);
+  const [content, setContent] = useState(defaultContent);
+  const [isRemote, setIsRemote] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Apply live CSS custom property updates from config
+  useConfigEffects(config);
+
+  const previousView = useRef<ViewMode>(viewMode);
+
+  useEffect(() => {
+    previousView.current = viewMode;
+  }, [viewMode]);
+
+  // Persist view mode when user switches to full-view or split-view
+  const handleViewChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode === "full-view" || mode === "split-view") {
+      updateConfig("general", { lastViewMode: mode });
+    }
+  }, [setViewMode, updateConfig]);
+
   // File operations hooks
-  const { saveFile, isSaving, lastSaved } = useFileSave(platform, capabilities);
+  const { saveFile, saveFileAs, isSaving, lastSaved } = useFileSave(platform, capabilities);
   const { startWatching, stopWatching, isRefreshing } = useFileWatcher(platform, capabilities);
   const { exportHtml } = useHtmlExport(platform, capabilities);
   const { exportPdf } = usePdfExport();
@@ -194,6 +207,20 @@ function AppShell() {
     saveFile(content, filePath);
   }, [content, filePath, isRemote, saveFile]);
 
+  // Save As handler
+  const handleSaveAs = useCallback(async () => {
+    if (isRemote) return;
+    const chosenPath = await saveFileAs(content, fileName ?? "untitled.md");
+    if (chosenPath) {
+      setFilePath(chosenPath);
+      const name = chosenPath.replace(/\\/g, "/").split("/").pop() ?? chosenPath;
+      setFileName(name);
+      startWatching(chosenPath, (newContent) => {
+        setContent(newContent);
+      });
+    }
+  }, [content, fileName, isRemote, saveFileAs, startWatching]);
+
   // HTML export handler
   const handleExportHtml = useCallback(() => {
     exportHtml(content, config.engine.activeEngine);
@@ -259,13 +286,16 @@ function AppShell() {
     [platform, setViewMode, startWatching],
   );
 
-  // Can save: local file only (not remote, must have a file path)
+  // Can save: existing local file (not remote, must have a file path)
   const canSave = !isRemote && filePath !== null;
+  // Can Save As: any local content (not remote)
+  const canSaveAs = !isRemote;
 
   useKeyboardShortcuts({
-    onViewChange: setViewMode,
+    onViewChange: handleViewChange,
     onOpenFile: handleOpenFile,
     onSave: canSave ? handleSave : undefined,
+    onSaveAs: canSaveAs ? handleSaveAs : undefined,
     onExportHtml: handleExportHtml,
     onExportPdf: handleExportPdf,
     hasFilesystem: capabilities.hasFilesystem,
@@ -285,11 +315,13 @@ function AppShell() {
     >
       <Toolbar
         activeView={viewMode}
-        onViewChange={setViewMode}
+        onViewChange={handleViewChange}
         fileName={fileName}
         hasFilesystem={capabilities.hasFilesystem}
         onSave={handleSave}
-        canSave={canSave}
+        onSaveAs={canSaveAs ? handleSaveAs : undefined}
+        hasFilePath={filePath !== null}
+        canSave={canSave || canSaveAs}
         isSaving={isSaving}
         lastSaved={lastSaved}
         onExportHtml={handleExportHtml}

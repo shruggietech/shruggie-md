@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Save As** support with native file dialog on desktop (Tauri) and browser download fallback on web/PWA/extension targets. New keyboard shortcut: `Ctrl/Cmd+Shift+S`.
+- **SplitButton** component for context-aware Save / Save As toolbar action. Shows split button with dropdown when a file path is established; shows a single Save As icon when no path exists.
+- **Platform-aware default view mode**: desktop (Tauri) defaults to split-view; web, PWA, and Chrome extension default to full-view. User preference is persisted in `general.lastViewMode` config and restored on launch.
+- `saveFileDialog` method on the `PlatformAdapter` interface with implementations across all four adapters.
+- Inline descriptions (hint text) for every setting field in the Settings panel.
+- Tooltips on all interactive elements in Settings (color mode buttons, Choose directory button, Reset to defaults, extension chip remove buttons) and UrlInput (info button).
+
+### Changed
+
+- Toolbar Save button replaced with `SplitButton` for unified Save / Save As behavior.
+- HTML export now opens a native save dialog on desktop before falling back to browser download.
+- Spec updated: §4.6 (universal tooltip requirement, SplitButton), §5.1/§5.2 (platform-aware defaults), §5.5 (field descriptions), §6.2 (Save/Save As semantics), §6.3 (export save dialog), §10.1.1 (general.lastViewMode).
+
+### Fixed
+
+- Library table not populating on desktop: added missing `fs:allow-stat` permission to Tauri capabilities.
+
 ## [0.1.1] - 2026-03-25
 
 ### Fixed

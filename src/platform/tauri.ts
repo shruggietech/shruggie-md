@@ -6,7 +6,7 @@ import {
   readDir,
   stat,
 } from "@tauri-apps/plugin-fs";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { appConfigDir, join as joinPath } from "@tauri-apps/api/path";
 
 export class TauriAdapter implements PlatformAdapter {
@@ -72,6 +72,17 @@ export class TauriAdapter implements PlatformAdapter {
     const result = await openDialog({
       directory: true,
       multiple: false,
+    });
+    return result ?? null;
+  }
+
+  async saveFileDialog(defaultName?: string, extensions?: string[]): Promise<string | null> {
+    const filters = extensions && extensions.length > 0
+      ? [{ name: "Files", extensions: extensions.map((ext) => ext.replace(/^\./, "")) }]
+      : undefined;
+    const result = await saveDialog({
+      defaultPath: defaultName,
+      filters,
     });
     return result ?? null;
   }
