@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "./tokens.css";
+@import "./transitions.css";
+@import "./themes/default.css";
+@import "./themes/warm.css";
+@import "./themes/cool.css";
+@import "./themes/monochrome.css";
+@import "./preview.css";
+@import "./highlight.css";
+
+/* Tailwind CSS v4 theme configuration using @theme directive */
+@theme {
+  /* Map design tokens to Tailwind theme */
+
+  /* Colors - surfaces */
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-tertiary: var(--color-bg-tertiary);
+  --color-bg-hover: var(--color-bg-hover);
+  --color-bg-active: var(--color-bg-active);
+
+  /* Colors - borders */
+  --color-border-primary: var(--color-border-primary);
+  --color-border-subtle: var(--color-border-subtle);
+
+  /* Colors - text */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+
+  /* Colors - accent */
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-subtle: var(--color-accent-subtle);
+
+  /* Colors - status */
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+
+  /* Font families */
+  --font-ui: var(--font-ui);
+  --font-editor: var(--font-editor);
+  --font-preview: var(--font-preview);
+  --font-preview-mono: var(--font-preview-mono);
+
+  /* Font sizes */
+  --font-size-xs: var(--font-size-xs);
+  --font-size-sm: var(--font-size-sm);
+  --font-size-base: var(--font-size-base);
+  --font-size-lg: var(--font-size-lg);
+  --font-size-editor: var(--font-size-editor);
+  --font-size-preview: var(--font-size-preview);
+
+  /* Spacing */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+
+  /* Border radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+/* Base styles */
+html {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}

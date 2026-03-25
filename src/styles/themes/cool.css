@@ -1,0 +1,39 @@
+/* Cool visual style — blue/cool tone shifts */
+
+[data-theme="dark"][data-style="cool"] {
+  --color-bg-primary: #141820;
+  --color-bg-secondary: #1a1f2a;
+  --color-bg-tertiary: #171c25;
+  --color-bg-hover: #222a38;
+  --color-bg-active: #2a3344;
+
+  --color-border-primary: #2a3344;
+  --color-border-subtle: #222a38;
+
+  --color-text-primary: #dce4f0;
+  --color-text-secondary: #8899b0;
+  --color-text-tertiary: #566580;
+
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-subtle: rgba(59, 130, 246, 0.12);
+}
+
+[data-theme="light"][data-style="cool"] {
+  --color-bg-primary: #f5f8ff;
+  --color-bg-secondary: #edf2fc;
+  --color-bg-tertiary: #f0f5ff;
+  --color-bg-hover: #dce5f5;
+  --color-bg-active: #cdd8ec;
+
+  --color-border-primary: #c4d0e4;
+  --color-border-subtle: #dde5f2;
+
+  --color-text-primary: #141830;
+  --color-text-secondary: #4e5e80;
+  --color-text-tertiary: #8e9ab5;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4fd8;
+  --color-accent-subtle: rgba(37, 99, 235, 0.08);
+}

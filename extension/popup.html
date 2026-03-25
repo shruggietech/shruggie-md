@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shruggie Markdown</title>
+  <style>
+    :root {
+      --color-bg-primary: #1a1a1a;
+      --color-bg-secondary: #222222;
+      --color-bg-hover: #2a2a2a;
+      --color-border-primary: #333333;
+      --color-text-primary: #e8e8e8;
+      --color-text-secondary: #999999;
+      --color-accent: #5e9eff;
+      --color-accent-hover: #7bb3ff;
+      --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      font-family: var(--font-ui);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: var(--font-ui);
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-primary);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--color-accent);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-family: var(--font-ui);
+      border: 1px solid var(--color-border-primary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+    }
+
+    button.primary:hover {
+      background: var(--color-accent-hover);
+    }
+
+    button.secondary {
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+    }
+
+    button.secondary:hover {
+      background: var(--color-bg-hover);
+    }
+
+    .error {
+      color: #ff453a;
+      font-size: 12px;
+      margin-top: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Shruggie Markdown</h1>
+  <p class="subtitle">Paste a URL to render markdown</p>
+
+  <label for="url-input">Markdown URL</label>
+  <input
+    type="text"
+    id="url-input"
+    placeholder="https://example.com/readme.md"
+    spellcheck="false"
+  />
+  <p class="error" id="error-msg">Please enter a valid URL ending in a markdown extension.</p>
+
+  <div class="actions">
+    <button class="primary" id="render-btn">Render</button>
+    <button class="secondary" id="settings-btn">Settings</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

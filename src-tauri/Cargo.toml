@@ -1,0 +1,26 @@
+[package]
+name = "shruggie-md"
+version = "0.1.0"
+description = "Shruggie Markdown - Cross-platform markdown viewer/editor/converter"
+authors = ["you"]
+license = "Apache-2.0"
+repository = "https://github.com/shruggietech/shruggie-md"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.6" }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.10.3", features = ["unstable"] }
+tauri-plugin-log = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+

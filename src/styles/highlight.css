@@ -1,0 +1,100 @@
+/* Highlight.js Token Coloring — mapped to application design tokens */
+
+.hljs {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+/* Keywords: if, else, return, function, class, etc. */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-type {
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Strings */
+.hljs-string,
+.hljs-addition,
+.hljs-attribute {
+  color: var(--color-success);
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-quote {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* Numbers */
+.hljs-number,
+.hljs-literal {
+  color: var(--color-warning);
+}
+
+/* Function / method names */
+.hljs-title,
+.hljs-section {
+  color: var(--color-accent-hover);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Variables, parameters */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+  color: var(--color-text-primary);
+}
+
+/* Regex and special patterns */
+.hljs-regexp {
+  color: var(--color-error);
+}
+
+/* Deletions / diff removals */
+.hljs-deletion {
+  color: var(--color-error);
+  background: rgba(255, 69, 58, 0.1);
+}
+
+/* Diff additions */
+.hljs-addition {
+  background: rgba(48, 209, 88, 0.1);
+}
+
+/* Meta / preprocessor */
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: var(--color-text-secondary);
+}
+
+/* Tags (HTML/XML) */
+.hljs-tag {
+  color: var(--color-text-secondary);
+}
+
+.hljs-name {
+  color: var(--color-accent);
+}
+
+.hljs-attr {
+  color: var(--color-accent-hover);
+}
+
+/* Symbols, bullets */
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: var(--color-accent);
+}
+
+/* Emphasis in code */
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: var(--font-weight-semibold);
+}

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@/components/*": ["./src/components/*"],
+      "@/engines/*": ["./src/engines/*"],
+      "@/linters/*": ["./src/linters/*"],
+      "@/platform/*": ["./src/platform/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/styles/*": ["./src/styles/*"],
+      "@/config/*": ["./src/config/*"]
+    }
+  },
+  "include": ["src", "extension"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

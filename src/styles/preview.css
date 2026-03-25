@@ -1,0 +1,228 @@
+/* Preview Content Styles — Shruggie Markdown §8.3 */
+
+.preview-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 var(--space-8);
+  font-family: var(--font-preview);
+  font-size: var(--font-size-preview);
+  line-height: var(--line-height-preview);
+  color: var(--color-text-primary);
+}
+
+/* ── Headings ──────────────────────────────────────────────── */
+
+.preview-content h1,
+.preview-content h2,
+.preview-content h3,
+.preview-content h4,
+.preview-content h5,
+.preview-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+}
+
+.preview-content h1 {
+  font-size: 28px;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.preview-content h2 {
+  font-size: 22px;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.preview-content h3 {
+  font-size: 18px;
+}
+
+.preview-content h4 {
+  font-size: 16px;
+}
+
+.preview-content h5 {
+  font-size: 15px;
+}
+
+.preview-content h6 {
+  font-size: 13px;
+}
+
+/* ── Paragraphs ────────────────────────────────────────────── */
+
+.preview-content p {
+  font-size: var(--font-size-preview);
+  line-height: var(--line-height-preview);
+  margin-bottom: 1em;
+}
+
+/* ── Code blocks (pre > code) ──────────────────────────────── */
+
+.preview-content pre {
+  margin-bottom: 1em;
+  overflow-x: auto;
+}
+
+.preview-content pre > code {
+  display: block;
+  background: var(--color-bg-tertiary);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-preview-mono);
+  font-size: 0.9em;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+/* ── Inline code ───────────────────────────────────────────── */
+
+.preview-content :not(pre) > code {
+  background: var(--color-bg-hover);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: var(--font-preview-mono);
+  font-size: 0.9em;
+}
+
+/* ── Blockquotes ───────────────────────────────────────────── */
+
+.preview-content blockquote {
+  margin: 0 0 1em 0;
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--color-accent-subtle);
+  color: var(--color-text-secondary);
+}
+
+.preview-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Tables ────────────────────────────────────────────────── */
+
+.preview-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+
+.preview-content thead th {
+  background: var(--color-bg-secondary);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+}
+
+.preview-content th,
+.preview-content td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* ── Links ─────────────────────────────────────────────────── */
+
+.preview-content a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.preview-content a:hover {
+  text-decoration: underline;
+}
+
+/* ── Images ────────────────────────────────────────────────── */
+
+.preview-content img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Horizontal rules ──────────────────────────────────────── */
+
+.preview-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border-subtle);
+  margin: var(--space-6) 0;
+}
+
+/* ── Lists ─────────────────────────────────────────────────── */
+
+.preview-content ul,
+.preview-content ol {
+  padding-left: 2em;
+  margin-bottom: 1em;
+}
+
+.preview-content li {
+  margin-bottom: 0.25em;
+}
+
+/* ── Task lists ────────────────────────────────────────────── */
+
+.preview-content ul.contains-task-list,
+.preview-content ul.task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.preview-content li.task-list-item {
+  list-style: none;
+}
+
+.preview-content li.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-border-primary);
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 6px;
+  position: relative;
+  cursor: default;
+}
+
+.preview-content li.task-list-item input[type="checkbox"]:checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.preview-content li.task-list-item input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: -1px;
+  left: 2px;
+  font-size: 12px;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* ── Definition lists ──────────────────────────────────────── */
+
+.preview-content dl {
+  margin-bottom: 1em;
+}
+
+.preview-content dt {
+  font-weight: var(--font-weight-semibold);
+}
+
+.preview-content dd {
+  margin-left: var(--space-4);
+  margin-bottom: 0.5em;
+}
+
+/* ── Strong / Em / Del ─────────────────────────────────────── */
+
+.preview-content strong {
+  font-weight: var(--font-weight-semibold);
+}
+
+.preview-content del {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}

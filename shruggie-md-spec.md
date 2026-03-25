@@ -6,7 +6,7 @@
 | Project Slug | `shruggie-md` |
 | CLI Command | `shruggie-md` |
 | Repository | [github.com/shruggietech/shruggie-md](https://github.com/shruggietech/shruggie-md) |
-| License | TBD |
+| License | Apache-2.0 |
 | Version | Pre-release (0.1.0 target) |
 | Author | William Thompson (Shruggie LLC, DBA ShruggieTech) |
 | Latest Revision Date | 2026-03-24 |

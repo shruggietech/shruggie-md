@@ -1,0 +1,39 @@
+/* Monochrome visual style — grayscale accent */
+
+[data-theme="dark"][data-style="monochrome"] {
+  --color-bg-primary: #181818;
+  --color-bg-secondary: #202020;
+  --color-bg-tertiary: #1c1c1c;
+  --color-bg-hover: #282828;
+  --color-bg-active: #303030;
+
+  --color-border-primary: #303030;
+  --color-border-subtle: #282828;
+
+  --color-text-primary: #e0e0e0;
+  --color-text-secondary: #909090;
+  --color-text-tertiary: #606060;
+
+  --color-accent: #a0a0a0;
+  --color-accent-hover: #c0c0c0;
+  --color-accent-subtle: rgba(160, 160, 160, 0.12);
+}
+
+[data-theme="light"][data-style="monochrome"] {
+  --color-bg-primary: #fafafa;
+  --color-bg-secondary: #f0f0f0;
+  --color-bg-tertiary: #f5f5f5;
+  --color-bg-hover: #e4e4e4;
+  --color-bg-active: #d8d8d8;
+
+  --color-border-primary: #d0d0d0;
+  --color-border-subtle: #e0e0e0;
+
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #6a6a6a;
+  --color-text-tertiary: #a0a0a0;
+
+  --color-accent: #555555;
+  --color-accent-hover: #404040;
+  --color-accent-subtle: rgba(85, 85, 85, 0.08);
+}

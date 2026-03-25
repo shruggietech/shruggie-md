@@ -1,0 +1,39 @@
+/* Warm visual style — amber/warm tone shifts */
+
+[data-theme="dark"][data-style="warm"] {
+  --color-bg-primary: #1c1917;
+  --color-bg-secondary: #231f1b;
+  --color-bg-tertiary: #1f1b17;
+  --color-bg-hover: #2e2823;
+  --color-bg-active: #3a322b;
+
+  --color-border-primary: #3a322b;
+  --color-border-subtle: #2e2823;
+
+  --color-text-primary: #f5e6d3;
+  --color-text-secondary: #a89888;
+  --color-text-tertiary: #756556;
+
+  --color-accent: #f59e0b;
+  --color-accent-hover: #fbbf24;
+  --color-accent-subtle: rgba(245, 158, 11, 0.12);
+}
+
+[data-theme="light"][data-style="warm"] {
+  --color-bg-primary: #fffbf5;
+  --color-bg-secondary: #faf5ed;
+  --color-bg-tertiary: #fdf8f2;
+  --color-bg-hover: #f0e8da;
+  --color-bg-active: #e6dccb;
+
+  --color-border-primary: #e0d5c4;
+  --color-border-subtle: #ede5d8;
+
+  --color-text-primary: #292017;
+  --color-text-secondary: #78654e;
+  --color-text-tertiary: #b3a28e;
+
+  --color-accent: #d97706;
+  --color-accent-hover: #b45309;
+  --color-accent-subtle: rgba(217, 119, 6, 0.1);
+}
