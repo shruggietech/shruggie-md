@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-03-25
+
+### Fixed
+
+- Application launch failure on Windows: replaced invalid Tauri v1-style `plugins.fs.scope` config with Tauri 2-compatible `requireLiteralLeadingDot` field, resolving a deserialization panic during plugin initialization.
+- Windows install path: corrected Tauri identifier to `com.shruggie-tech.shruggie-md` so NSIS installs to `%LOCALAPPDATA%\shruggie-tech\shruggie-md\`.
+- Added `bundle.windows` config with NSIS installer settings and WebView2 download bootstrapper.
+- Removed unused `features = ["unstable"]` from tauri crate dependency.
+- Removed unused `use tauri::Manager` import in `lib.rs`.
+- Corrected `Cargo.toml` authors from placeholder to `William Thompson`.
+- Updated spec §10.5 Windows storage path to match install directory convention.
+
 ## [0.1.0] - 2026-03-25
 
 ### Added
@@ -41,5 +53,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/shruggietech/shruggie-md/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/shruggietech/shruggie-md/releases/tag/v0.1.0
