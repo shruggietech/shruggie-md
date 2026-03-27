@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import type { Config } from "../types/config";
+import { getLogger } from "../storage/logger";
 
 /**
  * Watches config changes and applies live side-effects:
  * - Updates CSS custom properties for preview font/size/line-height
  * - Updates CSS custom properties for editor font/size/line-height
+ * - Syncs logger verbosity with config.advanced.logVerbosity
  */
 export function useConfigEffects(config: Config): void {
   // Apply preview CSS custom properties
@@ -24,4 +26,9 @@ export function useConfigEffects(config: Config): void {
     root.style.setProperty("--font-size-editor", `${config.editor.fontSize}px`);
     root.style.setProperty("--line-height-editor", String(config.editor.lineHeight));
   }, [config.editor.fontFamily, config.editor.fontSize, config.editor.lineHeight]);
+
+  // Sync logger verbosity
+  useEffect(() => {
+    getLogger().setVerbosity(config.advanced.logVerbosity);
+  }, [config.advanced.logVerbosity]);
 }

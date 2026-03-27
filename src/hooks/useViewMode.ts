@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 
-export type ViewMode = "full-view" | "split-view" | "library" | "settings";
+export type ViewMode = "view" | "edit" | "edit-only" | "workspaces" | "settings";
 
 export interface UseViewModeReturn {
   viewMode: ViewMode;
@@ -8,7 +8,7 @@ export interface UseViewModeReturn {
 }
 
 export function useViewMode(
-  initialMode: ViewMode = "full-view",
+  initialMode: ViewMode = "view",
 ): UseViewModeReturn {
   const [viewMode, setViewModeState] = useState<ViewMode>(initialMode);
 

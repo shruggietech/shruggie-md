@@ -2,6 +2,7 @@ export interface Config {
   appearance: {
     colorMode: "light" | "dark" | "system";
     visualStyle: "default" | "warm" | "cool" | "monochrome";
+    showButtonLabels: boolean;
   };
   editor: {
     fontFamily: string;
@@ -23,14 +24,17 @@ export interface Config {
   fileExtensions: {
     recognized: string[];
   };
-  library: {
-    mountPath: string | null;
+  workspace: {
     recursive: boolean;
     showHidden: boolean;
     useIndependentExtensions: boolean;
     independentExtensions: string[];
   };
   general: {
-    lastViewMode: "full-view" | "split-view" | null;
+    lastViewMode: "view" | "edit" | "edit-only" | null;
+    editorToolbarExpanded: boolean;
+  };
+  advanced: {
+    logVerbosity: "debug" | "info" | "warning" | "error";
   };
 }

@@ -7,13 +7,20 @@ import { Toolbar } from "../components/Toolbar";
 import type { ToolbarProps } from "../components/Toolbar";
 
 // ── CodeMirror mocks ─────────────────────────────────────────────────────
-vi.mock("@codemirror/state", () => ({
-  EditorState: {
-    create: vi.fn(({ doc }: { doc: string }) => ({
-      doc: { toString: () => doc },
-    })),
-  },
-}));
+vi.mock("@codemirror/state", () => {
+  class MockCompartment {
+    of() { return []; }
+    reconfigure() { return {}; }
+  }
+  return {
+    EditorState: {
+      create: vi.fn(({ doc }: { doc: string }) => ({
+        doc: { toString: () => doc },
+      })),
+    },
+    Compartment: MockCompartment,
+  };
+});
 
 vi.mock("@codemirror/view", () => {
   function EditorViewCtor({ parent }: { state: unknown; parent: HTMLElement }) {
@@ -419,15 +426,13 @@ describe("Updated Toolbar", () => {
     return render(
       createElement(ThemeProvider, null,
         createElement(Toolbar, {
-          activeView: "full-view" as const,
+          activeView: "view" as const,
           onViewChange: vi.fn(),
           fileName: "test.md",
           hasFilesystem: false,
           onSave: vi.fn(),
           canSave: true,
-          onExportHtml: vi.fn(),
-          onExportPdf: vi.fn(),
-          onFetchUrl: vi.fn(),
+          onExport: vi.fn(),
           ...props,
         })
       )
@@ -438,16 +443,16 @@ describe("Updated Toolbar", () => {
     renderToolbar();
     const actions = screen.getByTestId("toolbar-actions");
     const buttons = actions.querySelectorAll("button");
-    // Should have Save, Export HTML, Export PDF buttons, plus Globe toggle
-    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    // Should have Save and Export buttons
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("Export buttons are present", () => {
+  it("Export button is present", () => {
     renderToolbar();
     const actions = screen.getByTestId("toolbar-actions");
     const buttons = actions.querySelectorAll("button");
-    // At least Save + HTML export + PDF export + URL toggle = 4
-    expect(buttons.length).toBeGreaterThanOrEqual(4);
+    // Save (SplitButton) + Export button = at least 2
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
   });
 
   it("Save button disabled when canSave is false", () => {

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from "react";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, lineNumbers, highlightActiveLine, keymap } from "@codemirror/view";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
@@ -17,6 +17,8 @@ export interface EditorProps {
   engineId?: string;
   lintingEnabled?: boolean;
   activeLinter?: string;
+  showLineNumbers?: boolean;
+  wordWrap?: boolean;
 }
 
 const shruggieDarkTheme = EditorView.theme({
@@ -90,12 +92,18 @@ export function Editor({
   onChange,
   lintingEnabled = false,
   activeLinter = "markdownlint",
+  showLineNumbers = true,
+  wordWrap = true,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const lintingEnabledRef = useRef(lintingEnabled);
   const activeLinterRef = useRef(activeLinter);
+
+  // Compartments for dynamic reconfiguration
+  const lineNumbersCompartment = useRef(new Compartment());
+  const wordWrapCompartment = useRef(new Compartment());
 
   // Keep refs in sync without recreating the editor
   useEffect(() => {
@@ -144,7 +152,7 @@ export function Editor({
     const state = EditorState.create({
       doc: value,
       extensions: [
-        lineNumbers(),
+        lineNumbersCompartment.current.of(showLineNumbers ? lineNumbers() : []),
         highlightActiveLine(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
@@ -153,7 +161,7 @@ export function Editor({
         autocompletion(),
         lintGutter(),
         lintExtension,
-        EditorView.lineWrapping,
+        wordWrapCompartment.current.of(wordWrap ? EditorView.lineWrapping : []),
         shruggieDarkTheme,
         syntaxHighlighting(shruggieHighlightStyle),
         updateListener,
@@ -191,6 +199,28 @@ export function Editor({
       });
     }
   }, [value]);
+
+  // React to showLineNumbers changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: lineNumbersCompartment.current.reconfigure(
+        showLineNumbers ? lineNumbers() : [],
+      ),
+    });
+  }, [showLineNumbers]);
+
+  // React to wordWrap changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    view.dispatch({
+      effects: wordWrapCompartment.current.reconfigure(
+        wordWrap ? EditorView.lineWrapping : [],
+      ),
+    });
+  }, [wordWrap]);
 
   return (
     <div

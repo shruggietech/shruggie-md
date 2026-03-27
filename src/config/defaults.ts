@@ -4,6 +4,7 @@ export const defaultConfig: Config = {
   appearance: {
     colorMode: "dark",
     visualStyle: "default",
+    showButtonLabels: true,
   },
   editor: {
     fontFamily: '"JetBrains Mono", "Fira Code", monospace',
@@ -26,8 +27,7 @@ export const defaultConfig: Config = {
   fileExtensions: {
     recognized: [".md", ".markdown", ".mdown", ".mkdn", ".mkd"],
   },
-  library: {
-    mountPath: null,
+  workspace: {
     recursive: true,
     showHidden: false,
     useIndependentExtensions: false,
@@ -35,5 +35,9 @@ export const defaultConfig: Config = {
   },
   general: {
     lastViewMode: null,
+    editorToolbarExpanded: false,
+  },
+  advanced: {
+    logVerbosity: "warning",
   },
 };

@@ -8,20 +8,27 @@ import {
   useFileWatcher,
   useHtmlExport,
   usePdfExport,
-  useRemoteFetch,
-  useLibrary,
+  useWorkspaces,
   useCliArgs,
+  useWindowState,
 } from "./hooks";
 import type { ViewMode } from "./hooks";
-import { Toolbar } from "./components/Toolbar";
+import { Toolbar, EditorToolbarPanel } from "./components/Toolbar";
+import { OpenDialog } from "./components/OpenDialog";
+import type { OpenDialogResult } from "./components/OpenDialog";
+import { ExportDialog } from "./components/ExportDialog";
+import type { ExportFormat } from "./components/ExportDialog";
 import { Preview } from "./components/Preview";
 import { SplitView } from "./components/SplitView";
+import { Editor } from "./components/Editor";
 import { Settings } from "./components/Settings";
-import { Library } from "./components/Library";
+import { Workspaces } from "./components/Workspaces";
 import { InstallPrompt } from "./components/common";
 import { getPlatform } from "./platform/platform";
 import type { PlatformAdapter, PlatformCapabilities } from "./platform/platform";
 import { ConfigProvider, useConfig } from "./config";
+import { getStorage, initLogger, migrateConfig, StorageContext, useStorage } from "./storage";
+import type { StorageAdapter } from "./storage";
 
 const defaultContent = `# Welcome to Shruggie MD
 
@@ -29,21 +36,24 @@ Start by opening a file (**Ctrl+O** / **Cmd+O**) or just enjoy this preview.
 
 ## Features
 
-- **Full view** — rendered markdown preview
-- **Split view** — editor + preview side by side
-- **Library** — browse your markdown files
+- **View** — rendered markdown preview
+- **Edit** — editor + preview side by side
+- **Edit Only** — full-screen editor
+- **Workspaces** — browse your markdown files
 - **Settings** — configure everything
 
 ### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl/Cmd + 1 | Full view |
-| Ctrl/Cmd + 2 | Split view |
-| Ctrl/Cmd + 3 | Library |
+| Ctrl/Cmd + 1 | View |
+| Ctrl/Cmd + 2 | Edit |
+| Ctrl/Cmd + 3 | Workspaces |
+| Ctrl/Cmd + 4 | Edit Only |
 | Ctrl/Cmd + , | Settings |
 | Ctrl/Cmd + O | Open file |
 | Ctrl/Cmd + S | Save |
+| Ctrl/Cmd + Shift + E | Export |
 | Ctrl/Cmd + Shift + H | Export HTML |
 | Ctrl/Cmd + Shift + P | Export PDF |
 
@@ -54,6 +64,7 @@ Start by opening a file (**Ctrl+O** / **Cmd+O**) or just enjoy this preview.
 
 function AppShell() {
   const { config, updateConfig } = useConfig();
+  const storage = useStorage();
 
   const [platform, setPlatform] = useState<PlatformAdapter | null>(null);
   const [capabilities, setCapabilities] = useState<PlatformCapabilities>({
@@ -78,14 +89,20 @@ function AppShell() {
 
   // Compute initial view mode: persisted preference > platform-aware default
   const resolvedInitialView = config.general.lastViewMode
-    ?? (capabilities.hasFilesystem ? "split-view" : "full-view");
+    ?? (capabilities.hasFilesystem ? "edit" : "view");
 
   const { viewMode, setViewMode } = useViewMode(resolvedInitialView);
+
+  // Persist and restore window state (desktop only)
+  useWindowState(storage, capabilities.hasFilesystem);
+
   const [fileName, setFileName] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [content, setContent] = useState(defaultContent);
   const [isRemote, setIsRemote] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
 
   // Apply live CSS custom property updates from config
   useConfigEffects(config);
@@ -96,24 +113,32 @@ function AppShell() {
     previousView.current = viewMode;
   }, [viewMode]);
 
-  // Persist view mode when user switches to full-view or split-view
+  // Persist view mode when user switches to view, edit, or edit-only
   const handleViewChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    if (mode === "full-view" || mode === "split-view") {
+    if (mode === "view" || mode === "edit" || mode === "edit-only") {
       updateConfig("general", { lastViewMode: mode });
     }
   }, [setViewMode, updateConfig]);
+
+  // Pop-down toolbar panel toggle
+  const handleToggleToolbarPanel = useCallback(() => {
+    updateConfig("general", { editorToolbarExpanded: !config.general.editorToolbarExpanded });
+  }, [config.general.editorToolbarExpanded, updateConfig]);
 
   // File operations hooks
   const { saveFile, saveFileAs, isSaving, lastSaved } = useFileSave(platform, capabilities);
   const { startWatching, stopWatching, isRefreshing } = useFileWatcher(platform, capabilities);
   const { exportHtml } = useHtmlExport(platform, capabilities);
   const { exportPdf } = usePdfExport();
-  const { fetchUrl, isFetching: isFetchingUrl } = useRemoteFetch();
 
-  // Library
-  const { files: libraryFiles, isScanning: isLibraryScanning, scan: scanLibrary, mountDirectory } = useLibrary(platform, capabilities);
-  const [libraryFilter, setLibraryFilter] = useState("");
+  // Workspaces
+  const {
+    files: workspaceFiles,
+    isScanning: isWorkspacesScanning,
+    scan: scanWorkspace,
+  } = useWorkspaces(platform, capabilities, storage);
+  const [workspacesFilter, setWorkspacesFilter] = useState("");
 
   // CLI arguments: open file or URL from command line
   const handleCliFileOpen = useCallback(
@@ -123,39 +148,85 @@ function AppShell() {
         const fileContent = await platform.readFile(cliPath);
         setContent(fileContent);
         setIsRemote(false);
-        setFetchError(null);
         setFilePath(cliPath);
         const name = cliPath.replace(/\\/g, "/").split("/").pop() ?? cliPath;
         setFileName(name);
         startWatching(cliPath, (newContent) => {
           setContent(newContent);
         });
-        setViewMode("full-view");
+        setViewMode("view");
+
+        // Register in document model
+        if (storage) {
+          const defaultWs = await storage.getDefaultWorkspace();
+          if (defaultWs) {
+            const docId = crypto.randomUUID();
+            await storage.createDocument({
+              id: docId,
+              title: name.replace(/\.[^.]+$/, ""),
+              source_type: "local",
+              source_path: cliPath,
+              source_url: null,
+              workspace_id: defaultWs.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+            setCurrentDocumentId(docId);
+          }
+        }
       } catch {
         // File not readable — stay on default content
       }
     },
-    [platform, startWatching, setViewMode],
+    [platform, startWatching, setViewMode, storage],
   );
 
   const handleCliUrlFetch = useCallback(
     async (url: string) => {
       stopWatching();
-      const result = await fetchUrl(url);
-      if (result.error) {
-        setFetchError(result.error);
-        return;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const contentType = response.headers.get("content-type") ?? "";
+        const isText =
+          contentType.includes("text/") ||
+          contentType.includes("application/json") ||
+          contentType.includes("application/xml") ||
+          contentType === "";
+        if (!isText) return;
+
+        const fetchedContent = await response.text();
+        setContent(fetchedContent);
+        setIsRemote(true);
+        setFilePath(null);
+        const urlParts = url.split("/");
+        const urlFileName = urlParts[urlParts.length - 1] || "remote.md";
+        setFileName(urlFileName);
+        setViewMode("view");
+
+        // Register in document model
+        if (storage) {
+          const defaultWs = await storage.getDefaultWorkspace();
+          if (defaultWs) {
+            const docId = crypto.randomUUID();
+            await storage.createDocument({
+              id: docId,
+              title: urlFileName.replace(/\.[^.]+$/, ""),
+              source_type: "remote",
+              source_path: null,
+              source_url: url,
+              workspace_id: defaultWs.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+            setCurrentDocumentId(docId);
+          }
+        }
+      } catch {
+        // URL not fetchable — stay on default content
       }
-      setContent(result.content);
-      setIsRemote(true);
-      setFilePath(null);
-      setFetchError(null);
-      const urlParts = url.split("/");
-      const urlFileName = urlParts[urlParts.length - 1] || "remote.md";
-      setFileName(urlFileName);
-      setViewMode("full-view");
     },
-    [fetchUrl, stopWatching, setViewMode],
+    [stopWatching, setViewMode, storage],
   );
 
   useCliArgs(
@@ -163,49 +234,56 @@ function AppShell() {
     capabilities.hasCliArgs && platform !== null,
   );
 
-  // File open handler
-  const handleOpenFile = useCallback(async () => {
-    if (!platform) return;
-
-    const recognized = config.fileExtensions.recognized;
-    const selectedPath = await platform.openFileDialog(recognized);
-    if (!selectedPath) return;
-
-    // Validate extension
-    const ext = selectedPath.substring(selectedPath.lastIndexOf("."));
-    if (!recognized.includes(ext.toLowerCase())) {
-      window.alert(
-        `Unsupported file type "${ext}". Recognized extensions: ${recognized.join(", ")}`,
-      );
-      return;
+  // Open dialog result handler
+  const handleOpenDialogResult = useCallback(async (result: OpenDialogResult) => {
+    // Register document in storage
+    if (storage) {
+      const docId = crypto.randomUUID();
+      await storage.createDocument({
+        id: docId,
+        title: result.fileName.replace(/\.[^.]+$/, ""),
+        source_type: result.sourceType,
+        source_path: result.filePath,
+        source_url: result.sourceUrl,
+        workspace_id: result.workspaceId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      setCurrentDocumentId(docId);
     }
 
-    const fileContent = await platform.readFile(selectedPath);
-    setContent(fileContent);
-    setIsRemote(false);
-    setFetchError(null);
+    setContent(result.content);
+    setFileName(result.fileName);
+    setFilePath(result.filePath);
+    setIsRemote(result.sourceType === "remote");
 
-    // Store full path for saving
-    setFilePath(selectedPath);
+    // Start watching for local files
+    if (result.filePath) {
+      startWatching(result.filePath, (newContent) => {
+        setContent(newContent);
+      });
+    } else {
+      stopWatching();
+    }
 
-    // Extract just the file name from the path
-    const name = selectedPath.replace(/\\/g, "/").split("/").pop() ?? selectedPath;
-    setFileName(name);
-
-    // Start watching for file changes (desktop only)
-    startWatching(selectedPath, (newContent) => {
-      setContent(newContent);
-    });
-
-    // Switch to full-view when opening a file
-    setViewMode("full-view");
-  }, [platform, setViewMode, config.fileExtensions.recognized, startWatching]);
+    setViewMode("view");
+  }, [storage, startWatching, stopWatching, setViewMode]);
 
   // Save handler
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (isRemote || !filePath) return;
     saveFile(content, filePath);
-  }, [content, filePath, isRemote, saveFile]);
+    if (storage && currentDocumentId) {
+      await storage.updateDocument(currentDocumentId, {
+        updated_at: new Date().toISOString(),
+      });
+      await storage.appendEditHistory({
+        document_id: currentDocumentId,
+        content_snapshot: content,
+        created_at: new Date().toISOString(),
+      });
+    }
+  }, [content, filePath, isRemote, saveFile, storage, currentDocumentId]);
 
   // Save As handler
   const handleSaveAs = useCallback(async () => {
@@ -221,46 +299,44 @@ function AppShell() {
     }
   }, [content, fileName, isRemote, saveFileAs, startWatching]);
 
-  // HTML export handler
+  // HTML export handler (for direct keyboard shortcut)
   const handleExportHtml = useCallback(() => {
     exportHtml(content, config.engine.activeEngine);
   }, [content, config.engine.activeEngine, exportHtml]);
 
-  // PDF export handler
+  // PDF export handler (for direct keyboard shortcut)
   const handleExportPdf = useCallback(() => {
     exportPdf(content, config.engine.activeEngine);
   }, [content, config.engine.activeEngine, exportPdf]);
 
-  // Remote URL fetch handler
-  const handleFetchUrl = useCallback(
-    async (url: string) => {
-      // Stop any file watcher
-      stopWatching();
+  // Export format dispatcher (from ExportDialog)
+  const handleExportFormat = useCallback((format: ExportFormat) => {
+    switch (format) {
+      case "html":
+        exportHtml(content, config.engine.activeEngine);
+        break;
+      case "pdf":
+        exportPdf(content, config.engine.activeEngine);
+        break;
+      case "markdown":
+        saveFileAs(content, fileName ?? "untitled.md");
+        break;
+    }
+  }, [content, config.engine.activeEngine, exportHtml, exportPdf, saveFileAs, fileName]);
 
-      const result = await fetchUrl(url);
-      if (result.error) {
-        setFetchError(result.error);
-        return;
-      }
+  // New document handler
+  const handleNewDocument = useCallback(() => {
+    stopWatching();
+    setContent("");
+    setFileName(null);
+    setFilePath(null);
+    setIsRemote(false);
+    setCurrentDocumentId(null);
+    setViewMode("edit");
+  }, [stopWatching, setViewMode]);
 
-      setContent(result.content);
-      setIsRemote(true);
-      setFilePath(null);
-      setFetchError(null);
-
-      // Extract filename from URL
-      const urlParts = url.split("/");
-      const urlFileName = urlParts[urlParts.length - 1] || "remote.md";
-      setFileName(urlFileName);
-
-      // Switch to full-view
-      setViewMode("full-view");
-    },
-    [fetchUrl, stopWatching, setViewMode],
-  );
-
-  // Library file select handler
-  const handleLibraryFileSelect = useCallback(
+  // Workspace file select handler
+  const handleWorkspaceFileSelect = useCallback(
     async (selectedPath: string) => {
       if (!platform) return;
 
@@ -268,7 +344,6 @@ function AppShell() {
         const fileContent = await platform.readFile(selectedPath);
         setContent(fileContent);
         setIsRemote(false);
-        setFetchError(null);
         setFilePath(selectedPath);
 
         const name = selectedPath.replace(/\\/g, "/").split("/").pop() ?? selectedPath;
@@ -278,7 +353,7 @@ function AppShell() {
           setContent(newContent);
         });
 
-        setViewMode("full-view");
+        setViewMode("view");
       } catch {
         // File may have been deleted since scan
       }
@@ -293,11 +368,12 @@ function AppShell() {
 
   useKeyboardShortcuts({
     onViewChange: handleViewChange,
-    onOpenFile: handleOpenFile,
+    onOpenFile: () => setIsOpenDialogOpen(true),
     onSave: canSave ? handleSave : undefined,
     onSaveAs: canSaveAs ? handleSaveAs : undefined,
     onExportHtml: handleExportHtml,
     onExportPdf: handleExportPdf,
+    onExportDialog: () => setIsExportDialogOpen(true),
     hasFilesystem: capabilities.hasFilesystem,
   });
 
@@ -318,24 +394,33 @@ function AppShell() {
         onViewChange={handleViewChange}
         fileName={fileName}
         hasFilesystem={capabilities.hasFilesystem}
+        showButtonLabels={config.appearance.showButtonLabels}
+        toolbarPanelExpanded={config.general.editorToolbarExpanded}
+        onToggleToolbarPanel={handleToggleToolbarPanel}
+        onOpen={() => setIsOpenDialogOpen(true)}
+        onNewDocument={handleNewDocument}
         onSave={handleSave}
         onSaveAs={canSaveAs ? handleSaveAs : undefined}
         hasFilePath={filePath !== null}
         canSave={canSave || canSaveAs}
         isSaving={isSaving}
         lastSaved={lastSaved}
-        onExportHtml={handleExportHtml}
-        onExportPdf={handleExportPdf}
-        onFetchUrl={handleFetchUrl}
-        isFetchingUrl={isFetchingUrl}
-        fetchUrlError={fetchError}
+        onExport={() => setIsExportDialogOpen(true)}
         isRefreshing={isRefreshing}
-        onMountDirectory={mountDirectory}
-        onRefreshLibrary={scanLibrary}
-        libraryFilter={libraryFilter}
-        onLibraryFilterChange={setLibraryFilter}
-        isLibraryScanning={isLibraryScanning}
+        onRefreshWorkspaces={scanWorkspace}
+        workspacesFilter={workspacesFilter}
+        onWorkspacesFilterChange={setWorkspacesFilter}
+        isWorkspacesScanning={isWorkspacesScanning}
       />
+
+      {/* Pop-down quick settings panel */}
+      {config.general.editorToolbarExpanded && viewMode !== "workspaces" && viewMode !== "settings" && (
+        <EditorToolbarPanel
+          viewMode={viewMode}
+          config={config}
+          updateConfig={updateConfig}
+        />
+      )}
 
       <main
         style={{
@@ -357,61 +442,124 @@ function AppShell() {
             transition: "background-color 200ms ease-out",
           }}
         >
-          {viewMode === "full-view" && (
+          {viewMode === "view" && (
             <Preview
               source={content}
               engineId={config.engine.activeEngine}
             />
           )}
-          {viewMode === "split-view" && (
+          {viewMode === "edit" && (
             <SplitView
               source={content}
               onSourceChange={setContent}
               engineId={config.engine.activeEngine}
               lintingEnabled={config.editor.lintingEnabled}
               activeLinter={config.editor.activeLinter}
+              showLineNumbers={config.editor.showLineNumbers}
+              wordWrap={config.editor.wordWrap}
             />
           )}
-          {viewMode === "library" && (
-            <Library
-              files={libraryFiles}
-              onFileSelect={handleLibraryFileSelect}
-              filter={libraryFilter}
-              onFilterChange={setLibraryFilter}
+          {viewMode === "edit-only" && (
+            <Editor
+              value={content}
+              onChange={setContent}
+              showLineNumbers={config.editor.showLineNumbers}
+              wordWrap={config.editor.wordWrap}
+            />
+          )}
+          {viewMode === "workspaces" && (
+            <Workspaces
+              files={workspaceFiles}
+              onFileSelect={handleWorkspaceFileSelect}
+              filter={workspacesFilter}
+              onFilterChange={setWorkspacesFilter}
             />
           )}
           {viewMode === "settings" && (
             <Settings
               capabilities={capabilities}
-              platform={platform}
             />
           )}
         </div>
       </main>
 
       <InstallPrompt />
+
+      <OpenDialog
+        isOpen={isOpenDialogOpen}
+        onClose={() => setIsOpenDialogOpen(false)}
+        onOpen={handleOpenDialogResult}
+        platform={platform}
+        capabilities={capabilities}
+        storage={storage}
+        recognizedExtensions={config.fileExtensions.recognized}
+      />
+
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+        onExport={handleExportFormat}
+      />
     </div>
   );
 }
 
 function AppShellWithConfig() {
   const [platform, setPlatform] = useState<PlatformAdapter | null>(null);
+  const [storage, setStorage] = useState<StorageAdapter | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getPlatform().then((adapter) => {
+
+    const init = async () => {
+      // 1. Initialize platform adapter
+      const adapter = await getPlatform();
       if (cancelled) return;
       setPlatform(adapter);
-    });
+
+      // 2. Initialize storage adapter
+      try {
+        const store = await getStorage();
+        await store.initialize();
+        if (cancelled) return;
+
+        // 3. Run config migration (legacy JSON → storage)
+        await migrateConfig(store, adapter);
+
+        // 4. Initialize logger
+        const { unflattenConfig } = await import("./storage/config-utils");
+        const flat = await store.getAllConfig();
+        const loaded = unflattenConfig(flat);
+        const verbosity =
+          (loaded?.advanced as Record<string, unknown>)?.logVerbosity as
+            | "debug"
+            | "info"
+            | "warning"
+            | "error"
+            | undefined;
+        initLogger(store, verbosity ?? "warning");
+
+        if (cancelled) return;
+        setStorage(store);
+      } catch {
+        // Storage initialization failed — fall back to platform-only config
+        if (cancelled) return;
+      }
+    };
+
+    init();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
   return (
-    <ConfigProvider platform={platform}>
-      <AppShell />
-    </ConfigProvider>
+    <StorageContext value={storage}>
+      <ConfigProvider platform={platform} storage={storage}>
+        <AppShell />
+      </ConfigProvider>
+    </StorageContext>
   );
 }
 

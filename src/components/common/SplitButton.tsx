@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type MouseEventHandler } from "react";
+// Focus ring handled by CSS :focus-visible (see globals.css)
 import { Save, ChevronDown } from "lucide-react";
 import { Icon } from "./Icon";
 import { Tooltip } from "./Tooltip";
@@ -64,30 +65,19 @@ export function SplitButton({
     e.currentTarget.style.color = "var(--color-text-secondary)";
   };
 
-  const handleFocus: React.FocusEventHandler<HTMLButtonElement> = (e) => {
-    e.currentTarget.style.outline = "2px solid var(--color-accent)";
-    e.currentTarget.style.outlineOffset = "2px";
-  };
-
-  const handleBlur: React.FocusEventHandler<HTMLButtonElement> = (e) => {
-    e.currentTarget.style.outline = "none";
-    e.currentTarget.style.outlineOffset = "0px";
-  };
-
   // No established path: plain "Save As" button
   if (!hasPath) {
     return (
       <Tooltip content="Save As (Ctrl+Shift+S)">
         <button
           type="button"
+          className="shruggie-btn"
           aria-label="Save As (Ctrl+Shift+S)"
           onClick={onSaveAs}
           disabled={isDisabled}
           style={{ ...buttonBaseStyle, borderRadius: "var(--radius-sm)", minWidth: 32 }}
           onMouseEnter={handleHover}
           onMouseLeave={handleLeave}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
         >
           <Icon icon={Save} size={16} />
         </button>
@@ -112,6 +102,7 @@ export function SplitButton({
           {/* Primary: Save */}
           <button
             type="button"
+            className="shruggie-btn"
             aria-label="Save (Ctrl+S)"
             onClick={onSave}
             disabled={isDisabled}
@@ -122,8 +113,6 @@ export function SplitButton({
             }}
             onMouseEnter={handleHover}
             onMouseLeave={handleLeave}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
           >
             <Icon icon={Save} size={16} />
           </button>
@@ -140,6 +129,7 @@ export function SplitButton({
           {/* Chevron: opens dropdown */}
           <button
             type="button"
+            className="shruggie-btn"
             aria-label="Save As (Ctrl+Shift+S)"
             aria-haspopup="true"
             aria-expanded={dropdownOpen}
@@ -153,8 +143,6 @@ export function SplitButton({
             }}
             onMouseEnter={handleHover}
             onMouseLeave={handleLeave}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
           >
             <Icon icon={ChevronDown} size={12} />
           </button>

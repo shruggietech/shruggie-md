@@ -39,12 +39,11 @@ describe("Foundation - Config Defaults", () => {
     ]);
   });
 
-  it("has library defaults configured correctly", () => {
-    expect(defaultConfig.library.mountPath).toBeNull();
-    expect(defaultConfig.library.recursive).toBe(true);
-    expect(defaultConfig.library.showHidden).toBe(false);
-    expect(defaultConfig.library.useIndependentExtensions).toBe(false);
-    expect(defaultConfig.library.independentExtensions).toEqual([]);
+  it("has workspace defaults configured correctly", () => {
+    expect(defaultConfig.workspace.recursive).toBe(true);
+    expect(defaultConfig.workspace.showHidden).toBe(false);
+    expect(defaultConfig.workspace.useIndependentExtensions).toBe(false);
+    expect(defaultConfig.workspace.independentExtensions).toEqual([]);
   });
 
   it("has correct editor defaults", () => {
@@ -69,7 +68,7 @@ describe("Foundation - Type Definitions", () => {
     expect(config.preview).toBeDefined();
     expect(config.engine).toBeDefined();
     expect(config.fileExtensions).toBeDefined();
-    expect(config.library).toBeDefined();
+    expect(config.workspace).toBeDefined();
   });
 
   it("MarkdownEngine interface can be implemented", () => {

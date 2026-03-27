@@ -27,6 +27,9 @@ export interface PlatformAdapter {
   readConfig(): Promise<Record<string, unknown>>;
   writeConfig(config: Record<string, unknown>): Promise<void>;
   getPlatformCapabilities(): PlatformCapabilities;
+  getAppDataDir(): Promise<string>;
+  createDirectory(path: string): Promise<void>;
+  removeDirectory(path: string): Promise<void>;
 }
 
 /**

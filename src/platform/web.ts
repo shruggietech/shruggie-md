@@ -31,7 +31,7 @@ export class WebAdapter implements PlatformAdapter {
   }
 
   async listDirectory(_path: string, _recursive: boolean): Promise<DirectoryEntry[]> {
-    // Library is desktop-only; web returns empty
+    // Workspace browsing is desktop-only; web returns empty
     return [];
   }
 
@@ -63,5 +63,17 @@ export class WebAdapter implements PlatformAdapter {
       hasNativeDialogs: false,
       hasCliArgs: false,
     };
+  }
+
+  async getAppDataDir(): Promise<string> {
+    return "";
+  }
+
+  async createDirectory(_path: string): Promise<void> {
+    // No-op in web environment
+  }
+
+  async removeDirectory(_path: string): Promise<void> {
+    // No-op in web environment
   }
 }

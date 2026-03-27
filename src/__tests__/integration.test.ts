@@ -103,7 +103,7 @@ describe("Config round-trip", () => {
     expect(defaultConfig.preview).toBeDefined();
     expect(defaultConfig.engine).toBeDefined();
     expect(defaultConfig.fileExtensions).toBeDefined();
-    expect(defaultConfig.library).toBeDefined();
+    expect(defaultConfig.workspace).toBeDefined();
   });
 
   it("config values can be changed and verified", () => {
@@ -125,7 +125,7 @@ describe("Config round-trip", () => {
     const modified: Config = {
       ...defaultConfig,
       engine: { activeEngine: "remark" },
-      appearance: { colorMode: "light", visualStyle: "warm" },
+      appearance: { colorMode: "light", visualStyle: "warm", showButtonLabels: true },
     };
 
     expect(modified.engine.activeEngine).toBe("remark");
@@ -283,20 +283,20 @@ describe("Keyboard shortcuts registration", () => {
 
     render(createElement(ThemeProvider, null, createElement(TestHarness)));
 
-    // Ctrl+1 → full-view (already default, switch away first)
+    // Ctrl+1 → view (already default, switch away first)
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(screen.getByTestId("view").textContent).toBe("split-view");
+    expect(screen.getByTestId("view").textContent).toBe("edit");
 
     fireEvent.keyDown(window, { key: "1", ctrlKey: true });
-    expect(screen.getByTestId("view").textContent).toBe("full-view");
+    expect(screen.getByTestId("view").textContent).toBe("view");
 
-    // Ctrl+2 → split-view
+    // Ctrl+2 → edit
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(screen.getByTestId("view").textContent).toBe("split-view");
+    expect(screen.getByTestId("view").textContent).toBe("edit");
 
-    // Ctrl+3 → library
+    // Ctrl+3 → workspaces
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
-    expect(screen.getByTestId("view").textContent).toBe("library");
+    expect(screen.getByTestId("view").textContent).toBe("workspaces");
 
     // Ctrl+, → settings
     fireEvent.keyDown(window, { key: ",", ctrlKey: true });
@@ -449,14 +449,12 @@ describe("Component accessibility", () => {
 
     render(createElement(ThemeProvider, null,
       createElement(Toolbar, {
-        activeView: "full-view" as const,
+        activeView: "view" as const,
         onViewChange: () => {},
         fileName: null,
         hasFilesystem: true,
         onSave: () => {},
-        onExportHtml: () => {},
-        onExportPdf: () => {},
-        onFetchUrl: () => {},
+        onExport: () => {},
       }),
     ));
 
@@ -513,12 +511,12 @@ describe("Component accessibility", () => {
     expect(label!.getAttribute("for")).toBe(checkbox.getAttribute("id"));
   });
 
-  it("Library table has role=grid and aria-label", async () => {
+  it("Workspaces table has role=grid and aria-label", async () => {
     const { ThemeProvider } = await import("../hooks");
-    const { Library } = await import("../components/Library");
+    const { Workspaces } = await import("../components/Workspaces");
 
     render(createElement(ThemeProvider, null,
-      createElement(Library, {
+      createElement(Workspaces, {
         files: [
           { title: "test.md", path: "/test.md", lastEdited: new Date().toISOString(), created: new Date().toISOString() },
         ],
@@ -528,17 +526,17 @@ describe("Component accessibility", () => {
       }),
     ));
 
-    const table = screen.getByTestId("library-table");
+    const table = screen.getByTestId("workspaces-table");
     expect(table.getAttribute("role")).toBe("grid");
-    expect(table.getAttribute("aria-label")).toBe("Markdown files library");
+    expect(table.getAttribute("aria-label")).toBe("Workspace files");
   });
 
-  it("Library column headers are keyboard-accessible", async () => {
+  it("Workspaces column headers are keyboard-accessible", async () => {
     const { ThemeProvider } = await import("../hooks");
-    const { Library } = await import("../components/Library");
+    const { Workspaces } = await import("../components/Workspaces");
 
     render(createElement(ThemeProvider, null,
-      createElement(Library, {
+      createElement(Workspaces, {
         files: [],
         onFileSelect: () => {},
         filter: "",
@@ -552,13 +550,13 @@ describe("Component accessibility", () => {
     }
   });
 
-  it("Library rows are keyboard-accessible", async () => {
+  it("Workspaces rows are keyboard-accessible", async () => {
     const { ThemeProvider } = await import("../hooks");
-    const { Library } = await import("../components/Library");
+    const { Workspaces } = await import("../components/Workspaces");
 
     const selectFn = vi.fn();
     render(createElement(ThemeProvider, null,
-      createElement(Library, {
+      createElement(Workspaces, {
         files: [
           { title: "test.md", path: "/test.md", lastEdited: new Date().toISOString(), created: new Date().toISOString() },
         ],
@@ -568,7 +566,7 @@ describe("Component accessibility", () => {
       }),
     ));
 
-    const row = screen.getByTestId("library-row");
+    const row = screen.getByTestId("workspaces-row");
     expect(row.getAttribute("tabindex")).toBe("0");
 
     // Pressing Enter on a row should trigger file select

@@ -114,4 +114,16 @@ export class PwaAdapter implements PlatformAdapter {
       hasCliArgs: false,
     };
   }
+
+  async getAppDataDir(): Promise<string> {
+    return "";
+  }
+
+  async createDirectory(_path: string): Promise<void> {
+    // No-op in PWA environment
+  }
+
+  async removeDirectory(_path: string): Promise<void> {
+    // No-op in PWA environment
+  }
 }

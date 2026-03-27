@@ -8,6 +8,7 @@ export interface KeyboardShortcutCallbacks {
   onSaveAs?: () => void;
   onExportHtml?: () => void;
   onExportPdf?: () => void;
+  onExportDialog?: () => void;
   hasFilesystem: boolean;
 }
 
@@ -30,6 +31,7 @@ export function useKeyboardShortcuts({
   onSaveAs,
   onExportHtml,
   onExportPdf,
+  onExportDialog,
   hasFilesystem,
 }: KeyboardShortcutCallbacks): void {
   useEffect(() => {
@@ -63,6 +65,13 @@ export function useKeyboardShortcuts({
               onSaveAs();
             }
             return;
+          case "E":
+          case "e":
+            if (onExportDialog) {
+              e.preventDefault();
+              onExportDialog();
+            }
+            return;
         }
         return;
       }
@@ -70,17 +79,21 @@ export function useKeyboardShortcuts({
       switch (e.key) {
         case "1":
           e.preventDefault();
-          onViewChange("full-view");
+          onViewChange("view");
           break;
         case "2":
           e.preventDefault();
-          onViewChange("split-view");
+          onViewChange("edit");
           break;
         case "3":
           if (hasFilesystem) {
             e.preventDefault();
-            onViewChange("library");
+            onViewChange("workspaces");
           }
+          break;
+        case "4":
+          e.preventDefault();
+          onViewChange("edit-only");
           break;
         case ",":
           e.preventDefault();
@@ -105,5 +118,5 @@ export function useKeyboardShortcuts({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onViewChange, onOpenFile, onSave, onSaveAs, onExportHtml, onExportPdf, hasFilesystem]);
+  }, [onViewChange, onOpenFile, onSave, onSaveAs, onExportHtml, onExportPdf, onExportDialog, hasFilesystem]);
 }

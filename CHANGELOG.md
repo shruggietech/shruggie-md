@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Edit Only mode** (`Ctrl+4`): full-screen editor without preview pane, for focused writing.
+- **EditorToolbarPanel** component: collapsible quick-settings panel below the toolbar with context-sensitive controls per view mode.
+- **Button labels toggle** (`appearance.showButtonLabels`): toolbar buttons can now display text labels alongside icons. Controlled via a new toggle in Settings > Appearance.
+- **Scrollbar theming**: all scrollable containers use thin, theme-aware scrollbars (6 px track matching design tokens) on both WebKit and Firefox.
+- `general.editorToolbarExpanded` config setting to persist pop-down panel state.
+- **Storage abstraction layer** (`StorageAdapter` interface) with platform-specific backends: SQLite on desktop (via `tauri-plugin-sql`), IndexedDB on Chrome Extension and PWA. Provides unified CRUD access for config, documents, workspaces, edit history, and logs.
+- **Config migration**: on first launch after upgrading from a JSON-config release, legacy `config.json` (desktop) or old IndexedDB/localStorage stores are automatically migrated to the new storage backend. The old file is renamed to `config.json.bak`.
+- **Structured logging system**: module-level singleton logger that persists entries to the `logs` table/store when at or above the configured verbosity threshold. Entries include timestamp, level, module, message, and optional details.
+- **Window state persistence** (desktop only): main window size, position, and maximised state are saved on close and restored on next launch. Off-screen positions are detected via `availableMonitors()` and fall back to centering.
+- **Advanced settings section** in the Settings panel with a log verbosity dropdown (`debug` / `info` / `warning` / `error`).
+- `advanced.logVerbosity` config key (default `"warning"`) controlling minimum severity for persisted log entries.
+- **Workspace system**: replaces the former Library mode with a multi-workspace architecture supporting internal (app-managed) and external (user-chosen directory) workspaces.
+- **Default workspace**: auto-created on first launch when no workspaces exist, with `is_default` flag and deletion protection.
+- **Workspace CRUD**: create, delete, and manage workspaces from the Workspaces view. Internal workspace directories are created/removed automatically; external workspaces reference existing directories.
+- **Per-workspace settings**: each workspace stores its own settings (recursive traversal, show hidden files, independent extension rules, extension whitelist) as JSON in the `settings` column.
+- **PlatformAdapter extensions**: `getAppDataDir()`, `createDirectory(path)`, `removeDirectory(path)` methods added across all platform adapters (functional on Tauri, no-op stubs on web/PWA/Chrome).
+- `fs:allow-remove` permission added to Tauri capabilities for workspace directory cleanup.
+- **Unified Open dialog** (`Ctrl/Cmd+O`): tabbed dialog with File and URL source tabs, workspace selector with inline workspace creation, optional document name override. Replaces the separate file-open button and URL input toggle.
+- **Export dialog** (`Ctrl/Cmd+Shift+E`): format selection dialog offering HTML, PDF, and Markdown export. Replaces separate toolbar buttons for HTML and PDF export.
+- **New Document** toolbar button: creates a blank editor buffer, clears file path and document association, switches to edit mode.
+- **Document model integration**: opened files (local, remote, CLI) are registered in the `documents` table with source type, path/URL, and workspace ID. Save operations create edit history snapshots and update `updated_at` timestamps.
+- **Markdown export**: raw editor content can be exported/saved via the Export dialog's Markdown option.
+- **`Ctrl/Cmd+Shift+E` keyboard shortcut**: opens the Export dialog. Direct shortcuts `Ctrl/Cmd+Shift+H` (HTML) and `Ctrl/Cmd+Shift+P` (PDF) still bypass the dialog.
+
+### Changed
+
+- **Three-mode view system**: view modes renamed and expanded — `full-view` → `view`, `split-view` → `edit`, plus new `edit-only` mode. Legacy config values are silently migrated on load.
+- **Toolbar segmented control**: mode switcher now shows five buttons — View (`Ctrl+1`), Edit (`Ctrl+2`), Edit Only (`Ctrl+4`), Workspaces (`Ctrl+3`), Settings (`Ctrl+,`) — with the active mode highlighted.
+- **Pop-down quick-settings panel**: a chevron toggle below the toolbar reveals context-sensitive controls (font size, tab size, word wrap, line numbers for editor; engine, theme for preview) that adapt to the current view mode.
+- **Editor settings reactivity**: `showLineNumbers` and `wordWrap` editor preferences now reconfigure the CodeMirror instance in place via `Compartment`-based dispatch instead of requiring a full editor rebuild.
+- **Focus state management**: button focus rings now use CSS `:focus-visible` exclusively, removing JavaScript `onFocus`/`onBlur` handlers from `Button` and `SplitButton`.
+- Spec updated: §4.6 (toolbar mode switcher, pop-down panel, scrollbar styling, button labels, focus-visible), §5.1–§5.3.1 (three-mode view system), §7.1 (Compartment-based reactivity), §10.1.1 (editorToolbarExpanded, lastViewMode migration), §10.2 (showButtonLabels setting).
+- **Config persistence rewritten**: `useConfigState` now reads/writes configuration through the `StorageAdapter` when available, falling back to legacy platform adapter JSON I/O for backwards compatibility. Config values are flattened to dotted-path key-value pairs for storage.
+- Spec updated: §10.1 (storage architecture rewrite — SQLite/IndexedDB, StorageAdapter, migration), §10.1.1 (logVerbosity setting), §10.5 (storage locations with database filenames), new §10.6 (Logging), new §10.7 (Window State Persistence), §13 (tags stub tables noted).
+- **Library → Workspaces terminology migration**: all UI labels, component names, data-testids, config keys, types, and hook names renamed from `Library`/`library` to `Workspaces`/`workspaces`.
+- **Config key migration**: `library.recursive` → `workspace.recursive`, `library.showHidden` → `workspace.showHidden`, `library.useIndependentExtensions` → `workspace.useIndependentExtensions`, `library.independentExtensions` → `workspace.independentExtensions`. `library.mountPath` dropped (replaced by per-workspace paths).
+- **Settings panel**: removed Library section; Settings now has 6 sections (Appearance, Editor, Preview, Markdown Engine, File Extensions, Advanced).
+- **ViewMode type**: `"library"` → `"workspaces"` across all source and test files.
+- Spec updated: §1.3 (terminology), §5.4 (Workspaces View), §5.5 (Settings sections), §9 (complete rewrite from Library Mode to Workspaces with §9.1–§9.7), §10.5 (workspaces subdirectory), §12 (project structure), plus all scattered Library references throughout.
+- **I/O overhaul**: toolbar action buttons replaced — Open, New, Save/SaveAs, Export instead of Save/SaveAs + HTML + PDF + URL input. `UrlInput` component no longer used from toolbar.
+- **CLI URL fetching**: rewritten to use direct `fetch()` instead of the `useRemoteFetch` hook, with document model registration in the default workspace.
+- Spec updated: §6.1 "Viewing" → "Opening Files" (Open dialog, document model, CLI routing, live reload), §6.2 "Editing" (New Document, edit history), §6.3 "Converting" → "Exporting" (Export dialog, format table, direct shortcuts), §6.4 "Remote URL Fetching" → "Remote Content" (document model integration). TOC updated accordingly. "converter" → "exporter" in spec preamble.
+
 ## [0.2.0] - 2026-03-25
 
 ### Added
@@ -26,7 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Library table not populating on desktop: added missing `fs:allow-stat` permission to Tauri capabilities.
+- Workspaces table not populating on desktop: added missing `fs:allow-stat` permission to Tauri capabilities.
 
 ## [0.1.1] - 2026-03-25
 
@@ -50,14 +95,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full-view and split-view modes with draggable pane divider.
 - CodeMirror 6 editor with markdown syntax highlighting.
 - Markdown linting integration with markdownlint and remark-lint adapters.
-- Library mode for flat file management on desktop (sortable, filterable table).
+- Workspaces mode for file management on desktop (sortable, filterable table).
 - Light, dark, and system color modes with four visual styles (default, warm, cool, monochrome).
 - Markdown-to-HTML export with inlined styles.
 - Markdown-to-PDF export via browser print with custom print stylesheet and automatic page breaks at horizontal rules.
 - Remote URL fetching for publicly accessible raw markdown content.
 - Live file reload on desktop via filesystem watcher (300ms debounce).
-- Configurable file extension rules (global and library-independent).
-- Settings panel: Appearance, Editor, Preview, Markdown Engine, File Extensions, Library.
+- Configurable file extension rules (global and per-workspace).
+- Settings panel: Appearance, Editor, Preview, Markdown Engine, File Extensions, Advanced.
 - Platform abstraction layer with adapters for Tauri, Chrome, PWA, and Web.
 - Keyboard shortcuts: view modes (Ctrl/Cmd+1/2/3/,), save (Ctrl+S), HTML export (Ctrl+Shift+H), PDF export (Ctrl+Shift+P), file open (Ctrl+O).
 - 258 automated tests across 11 test files.

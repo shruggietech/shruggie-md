@@ -244,10 +244,10 @@ describe("Settings UI", () => {
     hasCliArgs: true,
   };
 
-  it("renders 5 sections when no filesystem", async () => {
+  it("renders 6 sections when no filesystem", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -256,13 +256,13 @@ describe("Settings UI", () => {
     expect(screen.getByTestId("settings-preview")).toBeInTheDocument();
     expect(screen.getByTestId("settings-engine")).toBeInTheDocument();
     expect(screen.getByTestId("settings-extensions")).toBeInTheDocument();
-    expect(screen.queryByTestId("settings-library")).not.toBeInTheDocument();
+    expect(screen.getByTestId("settings-advanced")).toBeInTheDocument();
   });
 
   it("renders 6 sections when filesystem is available", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={fsCaps} platform={createMockPlatform()} />,
+        <Settings capabilities={fsCaps} />,
       );
     });
 
@@ -271,13 +271,13 @@ describe("Settings UI", () => {
     expect(screen.getByTestId("settings-preview")).toBeInTheDocument();
     expect(screen.getByTestId("settings-engine")).toBeInTheDocument();
     expect(screen.getByTestId("settings-extensions")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-library")).toBeInTheDocument();
+    expect(screen.getByTestId("settings-advanced")).toBeInTheDocument();
   });
 
   it("appearance section shows color mode toggle buttons", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -289,7 +289,7 @@ describe("Settings UI", () => {
   it("engine dropdown shows 3 options", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -307,7 +307,7 @@ describe("Settings UI", () => {
   it("extension editor adds extensions on Enter", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -333,7 +333,7 @@ describe("Settings UI", () => {
   it("extension editor removes extensions", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -354,7 +354,7 @@ describe("Settings UI", () => {
   it("extension validation rejects input without leading dot", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 
@@ -373,7 +373,7 @@ describe("Settings UI", () => {
   it("extension validation rejects input with special characters", async () => {
     await act(async () => {
       renderWithProviders(
-        <Settings capabilities={noFsCaps} platform={null} />,
+        <Settings capabilities={noFsCaps} />,
       );
     });
 

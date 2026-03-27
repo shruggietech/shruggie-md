@@ -10,6 +10,8 @@ import {
 import type { Config } from "../types/config";
 import { defaultConfig } from "./defaults";
 import type { PlatformAdapter } from "../platform/platform";
+import type { StorageAdapter } from "../storage/types";
+import { flattenConfig, unflattenConfig } from "../storage/config-utils";
 
 export interface ConfigContextValue {
   config: Config;
@@ -39,25 +41,52 @@ function mergeWithDefaults(loaded: Record<string, unknown>): Config {
     }
   }
 
+  // Migrate legacy view mode values
+  const lvm = result.general.lastViewMode as string | null;
+  if (lvm === "full-view") {
+    result.general.lastViewMode = "view";
+  } else if (lvm === "split-view") {
+    result.general.lastViewMode = "edit";
+  }
+
   return result;
 }
 
 /**
  * Internal hook that provides config state management.
- * Used by ConfigProvider.
+ * Used by ConfigProvider. When a StorageAdapter is provided it takes
+ * precedence over the PlatformAdapter for config persistence.
  */
-export function useConfigState(platform: PlatformAdapter | null): ConfigContextValue {
+export function useConfigState(
+  platform: PlatformAdapter | null,
+  storage: StorageAdapter | null = null,
+): ConfigContextValue {
   const [config, setConfig] = useState<Config>(defaultConfig);
   const [isLoading, setIsLoading] = useState(true);
   const platformRef = useRef(platform);
   platformRef.current = platform;
+  const storageRef = useRef(storage);
+  storageRef.current = storage;
 
-  // Load config on mount (or when platform becomes available)
+  // Load config on mount (or when platform/storage becomes available)
   useEffect(() => {
-    if (!platform) return;
+    if (!platform && !storage) return;
     let cancelled = false;
 
-    platform.readConfig().then((loaded) => {
+    const load = async () => {
+      let loaded: Record<string, unknown>;
+      if (storage) {
+        const flat = await storage.getAllConfig();
+        loaded = unflattenConfig(flat);
+      } else if (platform) {
+        loaded = await platform.readConfig();
+      } else {
+        loaded = {};
+      }
+      return loaded;
+    };
+
+    load().then((loaded) => {
       if (cancelled) return;
       const merged = mergeWithDefaults(loaded);
       setConfig(merged);
@@ -70,7 +99,7 @@ export function useConfigState(platform: PlatformAdapter | null): ConfigContextV
     return () => {
       cancelled = true;
     };
-  }, [platform]);
+  }, [platform, storage]);
 
   // Persist config whenever it changes (skip initial default)
   const isInitialMount = useRef(true);
@@ -79,8 +108,21 @@ export function useConfigState(platform: PlatformAdapter | null): ConfigContextV
       isInitialMount.current = false;
       return;
     }
-    if (!platformRef.current) return;
-    platformRef.current.writeConfig(config as unknown as Record<string, unknown>);
+    // Prefer storage adapter when available
+    if (storageRef.current) {
+      const flat = flattenConfig(config as unknown as Record<string, unknown>);
+      const entries = Object.entries(flat).map(([key, value]) => ({
+        key,
+        value,
+      }));
+      storageRef.current.setConfigBulk(entries).catch(() => {
+        // Silent failure — config write is best-effort
+      });
+    } else if (platformRef.current) {
+      platformRef.current.writeConfig(
+        config as unknown as Record<string, unknown>,
+      );
+    }
   }, [config]);
 
   const updateConfig = useCallback(<K extends keyof Config>(

@@ -7,6 +7,8 @@ interface ButtonProps {
   variant?: "ghost" | "accent";
   icon?: LucideIcon;
   tooltip?: string;
+  label?: string;
+  showLabel?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
   children?: ReactNode;
@@ -16,6 +18,8 @@ export function Button({
   variant = "ghost",
   icon,
   tooltip,
+  label,
+  showLabel = false,
   onClick,
   disabled = false,
   children,
@@ -28,6 +32,7 @@ export function Button({
       aria-label={tooltip ?? undefined}
       onClick={onClick}
       disabled={disabled}
+      className="shruggie-btn"
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -67,17 +72,21 @@ export function Button({
           el.style.backgroundColor = "var(--color-accent)";
         }
       }}
-      onFocus={(e) => {
-        e.currentTarget.style.outline =
-          "2px solid var(--color-accent)";
-        e.currentTarget.style.outlineOffset = "2px";
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.outline = "none";
-        e.currentTarget.style.outlineOffset = "0px";
-      }}
     >
       {icon && <Icon icon={icon} size={16} />}
+      {label && (
+        <span
+          style={{
+            fontSize: "var(--font-size-xs)",
+            fontFamily: "var(--font-ui)",
+            lineHeight: 1,
+            display: showLabel ? "inline" : "none",
+          }}
+          aria-hidden="true"
+        >
+          {label}
+        </span>
+      )}
       {children}
     </button>
   );

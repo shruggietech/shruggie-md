@@ -19,7 +19,9 @@
       "@/hooks/*": ["./src/hooks/*"],
       "@/types/*": ["./src/types/*"],
       "@/styles/*": ["./src/styles/*"],
-      "@/config/*": ["./src/config/*"]
+      "@/config/*": ["./src/config/*"],
+      "@/storage/*": ["./src/storage/*"],
+      "@/storage": ["./src/storage/index.ts"]
     }
   },
   "include": ["src", "extension"],

@@ -5,6 +5,8 @@ import {
   watchImmediate,
   readDir,
   stat,
+  mkdir,
+  remove,
 } from "@tauri-apps/plugin-fs";
 import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { appConfigDir, join as joinPath } from "@tauri-apps/api/path";
@@ -146,5 +148,17 @@ export class TauriAdapter implements PlatformAdapter {
       hasNativeDialogs: true,
       hasCliArgs: true,
     };
+  }
+
+  async getAppDataDir(): Promise<string> {
+    return appConfigDir();
+  }
+
+  async createDirectory(path: string): Promise<void> {
+    await mkdir(path, { recursive: true });
+  }
+
+  async removeDirectory(path: string): Promise<void> {
+    await remove(path, { recursive: true });
   }
 }

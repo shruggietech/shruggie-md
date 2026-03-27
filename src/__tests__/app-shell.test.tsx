@@ -8,13 +8,20 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import type { ViewMode } from "../hooks/useViewMode";
 
 // ── CodeMirror mocks (needed because App now imports SplitView → Editor) ─
-vi.mock("@codemirror/state", () => ({
-  EditorState: {
-    create: vi.fn(({ doc }: { doc: string }) => ({
-      doc: { toString: () => doc },
-    })),
-  },
-}));
+vi.mock("@codemirror/state", () => {
+  class MockCompartment {
+    of() { return []; }
+    reconfigure() { return {}; }
+  }
+  return {
+    EditorState: {
+      create: vi.fn(({ doc }: { doc: string }) => ({
+        doc: { toString: () => doc },
+      })),
+    },
+    Compartment: MockCompartment,
+  };
+});
 
 vi.mock("@codemirror/view", () => {
   function EditorViewCtor({ parent }: { state: unknown; parent: HTMLElement }) {
@@ -116,7 +123,7 @@ describe("Toolbar", () => {
   it("renders with correct structure (app name, view buttons, file name)", () => {
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={() => {}}
         fileName="readme.md"
         hasFilesystem={true}
@@ -132,7 +139,7 @@ describe("Toolbar", () => {
   it("active view button has active styling", () => {
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={() => {}}
         fileName={null}
         hasFilesystem={true}
@@ -142,54 +149,54 @@ describe("Toolbar", () => {
     const viewButtons = screen.getByTestId("toolbar-view-buttons");
     const wrappers = viewButtons.querySelectorAll("div[style]");
 
-    // The first button wrapper (full-view) should have active background
-    const fullViewWrapper = wrappers[0];
-    expect(fullViewWrapper.getAttribute("style")).toContain("var(--color-bg-active)");
+    // The first button wrapper (view) should have active background
+    const viewWrapper = wrappers[0];
+    expect(viewWrapper.getAttribute("style")).toContain("var(--color-bg-active)");
   });
 
   it("clicking view buttons calls onViewChange", () => {
     const handler = vi.fn();
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={handler}
         fileName={null}
         hasFilesystem={true}
       />,
     );
 
-    // There should be 4 view buttons (full-view, split-view, library, settings)
+    // There should be 5 view buttons (view, edit, edit-only, library, settings)
     const buttons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    expect(buttons.length).toBe(4);
+    expect(buttons.length).toBe(5);
 
-    // Click split-view button (second)
+    // Click edit button (second)
     fireEvent.click(buttons[1]);
-    expect(handler).toHaveBeenCalledWith("split-view");
+    expect(handler).toHaveBeenCalledWith("edit");
 
-    // Click settings button (fourth)
-    fireEvent.click(buttons[3]);
+    // Click settings button (fifth)
+    fireEvent.click(buttons[4]);
     expect(handler).toHaveBeenCalledWith("settings");
   });
 
   it("library button hidden when hasFilesystem=false", () => {
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={() => {}}
         fileName={null}
         hasFilesystem={false}
       />,
     );
 
-    // Should have 3 buttons (full-view, split-view, settings — no library)
+    // Should have 4 buttons (view, edit, edit-only, settings — no library)
     const buttons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(4);
   });
 
   it("file name displays correctly", () => {
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={() => {}}
         fileName="notes.md"
         hasFilesystem={false}
@@ -201,7 +208,7 @@ describe("Toolbar", () => {
   it("shows 'No file' when fileName is null", () => {
     renderWithTheme(
       <Toolbar
-        activeView="full-view"
+        activeView="view"
         onViewChange={() => {}}
         fileName={null}
         hasFilesystem={false}
@@ -213,17 +220,17 @@ describe("Toolbar", () => {
 
 // ─── useViewMode tests ───────────────────────────────────────────────────
 describe("useViewMode", () => {
-  it("default view is full-view", () => {
+  it("default view is view", () => {
     const { result } = renderHook(() => useViewMode());
-    expect(result.current.viewMode).toBe("full-view");
+    expect(result.current.viewMode).toBe("view");
   });
 
-  it("can change to split-view", () => {
+  it("can change to edit", () => {
     const { result } = renderHook(() => useViewMode());
     act(() => {
-      result.current.setViewMode("split-view");
+      result.current.setViewMode("edit");
     });
-    expect(result.current.viewMode).toBe("split-view");
+    expect(result.current.viewMode).toBe("edit");
   });
 
   it("can change to settings", () => {
@@ -234,12 +241,12 @@ describe("useViewMode", () => {
     expect(result.current.viewMode).toBe("settings");
   });
 
-  it("can change to library", () => {
+  it("can change to workspaces", () => {
     const { result } = renderHook(() => useViewMode());
     act(() => {
-      result.current.setViewMode("library");
+      result.current.setViewMode("workspaces");
     });
-    expect(result.current.viewMode).toBe("library");
+    expect(result.current.viewMode).toBe("workspaces");
   });
 });
 
@@ -258,22 +265,22 @@ describe("useKeyboardShortcuts", () => {
     return <div data-testid="current-view">{viewMode}</div>;
   }
 
-  it("Ctrl+1 triggers full-view", () => {
+  it("Ctrl+1 triggers view", () => {
     renderWithTheme(<KeyboardTestHarness />);
 
-    // First switch away from full-view
+    // First switch away from view
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(screen.getByTestId("current-view").textContent).toBe("split-view");
+    expect(screen.getByTestId("current-view").textContent).toBe("edit");
 
-    // Now Ctrl+1 back to full-view
+    // Now Ctrl+1 back to view
     fireEvent.keyDown(window, { key: "1", ctrlKey: true });
-    expect(screen.getByTestId("current-view").textContent).toBe("full-view");
+    expect(screen.getByTestId("current-view").textContent).toBe("view");
   });
 
-  it("Ctrl+2 triggers split-view", () => {
+  it("Ctrl+2 triggers edit", () => {
     renderWithTheme(<KeyboardTestHarness />);
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(screen.getByTestId("current-view").textContent).toBe("split-view");
+    expect(screen.getByTestId("current-view").textContent).toBe("edit");
   });
 
   it("Ctrl+, triggers settings", () => {
@@ -282,17 +289,17 @@ describe("useKeyboardShortcuts", () => {
     expect(screen.getByTestId("current-view").textContent).toBe("settings");
   });
 
-  it("Ctrl+3 triggers library when hasFilesystem is true", () => {
+  it("Ctrl+3 triggers workspaces when hasFilesystem is true", () => {
     renderWithTheme(<KeyboardTestHarness hasFilesystem={true} />);
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
-    expect(screen.getByTestId("current-view").textContent).toBe("library");
+    expect(screen.getByTestId("current-view").textContent).toBe("workspaces");
   });
 
-  it("Ctrl+3 does NOT trigger library when hasFilesystem is false", () => {
+  it("Ctrl+3 does NOT trigger workspaces when hasFilesystem is false", () => {
     renderWithTheme(<KeyboardTestHarness hasFilesystem={false} />);
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
-    // Should still be on full-view (default)
-    expect(screen.getByTestId("current-view").textContent).toBe("full-view");
+    // Should still be on view (default)
+    expect(screen.getByTestId("current-view").textContent).toBe("view");
   });
 });
 
@@ -354,7 +361,7 @@ describe("App integration", () => {
 
     // Click settings button (the last view button since library is hidden with no filesystem)
     const viewButtons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    // Without filesystem: full-view, split-view, settings (3 buttons)
+    // Without filesystem: view, edit, edit-only, settings (4 buttons)
     const settingsButton = viewButtons[viewButtons.length - 1];
 
     await act(async () => {
@@ -365,14 +372,14 @@ describe("App integration", () => {
     expect(screen.getByTestId("settings-panel")).toBeInTheDocument();
   });
 
-  it("can switch to split-view", async () => {
+  it("can switch to edit", async () => {
     const { App } = await import("../App");
     await act(async () => {
       render(<App />);
     });
 
     const viewButtons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    // Split-view is the second button
+    // Edit is the second button
     await act(async () => {
       fireEvent.click(viewButtons[1]);
     });

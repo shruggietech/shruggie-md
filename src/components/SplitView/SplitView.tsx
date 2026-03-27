@@ -9,12 +9,14 @@ export interface SplitViewProps {
   engineId: string;
   lintingEnabled?: boolean;
   activeLinter?: string;
+  showLineNumbers?: boolean;
+  wordWrap?: boolean;
 }
 
 const MIN_PANE_WIDTH = 280;
 const DEBOUNCE_MS = 150;
 
-export function SplitView({ source, onSourceChange, engineId, lintingEnabled, activeLinter }: SplitViewProps) {
+export function SplitView({ source, onSourceChange, engineId, lintingEnabled, activeLinter, showLineNumbers, wordWrap }: SplitViewProps) {
   const [splitPercent, setSplitPercent] = useState(50);
   const [debouncedSource, setDebouncedSource] = useState(source);
 
@@ -135,6 +137,8 @@ export function SplitView({ source, onSourceChange, engineId, lintingEnabled, ac
           engineId={engineId}
           lintingEnabled={lintingEnabled}
           activeLinter={activeLinter}
+          showLineNumbers={showLineNumbers}
+          wordWrap={wordWrap}
         />
       </div>
 

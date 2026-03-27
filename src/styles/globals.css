@@ -83,3 +83,49 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* ── Scrollbar styling ─────────────────────────────────────────────────── */
+/* Thin, theme-aware scrollbars across all views */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-active) var(--color-bg-secondary);
+}
+
+/* Webkit / Chromium */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-active);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-bg-secondary);
+}
+
+/* ── Focus-visible for all interactive elements ────────────────────────── */
+/* Only show focus ring on keyboard navigation, not mouse clicks */
+
+.shruggie-btn:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.shruggie-btn:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
+}

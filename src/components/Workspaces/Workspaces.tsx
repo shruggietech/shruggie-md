@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import type { LibraryFile } from "../../hooks/useLibrary";
+import type { WorkspaceFile } from "../../hooks/useWorkspaces";
 
-export interface LibraryProps {
-  files: LibraryFile[];
+export interface WorkspacesProps {
+  files: WorkspaceFile[];
   onFileSelect: (path: string) => void;
   filter: string;
   onFilterChange: (filter: string) => void;
@@ -23,7 +23,7 @@ const columns: { key: SortKey; label: string }[] = [
   { key: "created", label: "Created" },
 ];
 
-function compareFn(a: LibraryFile, b: LibraryFile, key: SortKey, direction: SortDirection): number {
+function compareFn(a: WorkspaceFile, b: WorkspaceFile, key: SortKey, direction: SortDirection): number {
   let result: number;
 
   switch (key) {
@@ -61,7 +61,7 @@ function SortArrow({ direction }: { direction: SortDirection }) {
   );
 }
 
-export function Library({ files, onFileSelect, filter }: LibraryProps) {
+export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
   const [sorts, setSorts] = useState<SortSpec[]>([
     { key: "lastEdited", direction: "desc" },
   ]);
@@ -124,7 +124,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
 
   return (
     <div
-      data-testid="library-panel"
+      data-testid="workspaces-panel"
       style={{
         flex: 1,
         display: "flex",
@@ -135,9 +135,9 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
       }}
     >
       <table
-        data-testid="library-table"
+        data-testid="workspaces-table"
         role="grid"
-        aria-label="Markdown files library"
+        aria-label="Workspace files"
         style={{
           width: "100%",
           borderCollapse: "collapse",
@@ -156,7 +156,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
               return (
                 <th
                   key={col.key}
-                  data-testid={`library-header-${col.key}`}
+                  data-testid={`workspaces-header-${col.key}`}
                   role="columnheader"
                   tabIndex={0}
                   aria-sort={
@@ -194,7 +194,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
           {filteredAndSorted.map((file, index) => (
             <tr
               key={file.path}
-              data-testid="library-row"
+              data-testid="workspaces-row"
               role="row"
               tabIndex={0}
               onClick={() => onFileSelect(file.path)}
@@ -223,7 +223,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
               }}
             >
               <td
-                data-testid="library-cell-title"
+                data-testid="workspaces-cell-title"
                 style={{
                   padding: "var(--space-2) var(--space-3)",
                 }}
@@ -231,7 +231,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
                 {file.title}
               </td>
               <td
-                data-testid="library-cell-path"
+                data-testid="workspaces-cell-path"
                 style={{
                   padding: "var(--space-2) var(--space-3)",
                   color: "var(--color-text-secondary)",
@@ -244,7 +244,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
                 {file.path}
               </td>
               <td
-                data-testid="library-cell-lastEdited"
+                data-testid="workspaces-cell-lastEdited"
                 style={{
                   padding: "var(--space-2) var(--space-3)",
                   whiteSpace: "nowrap",
@@ -253,7 +253,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
                 {formatDate(file.lastEdited)}
               </td>
               <td
-                data-testid="library-cell-created"
+                data-testid="workspaces-cell-created"
                 style={{
                   padding: "var(--space-2) var(--space-3)",
                   whiteSpace: "nowrap",
@@ -267,7 +267,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
             <tr>
               <td
                 colSpan={4}
-                data-testid="library-empty"
+                data-testid="workspaces-empty"
                 style={{
                   padding: "var(--space-3)",
                   textAlign: "center",
@@ -275,7 +275,7 @@ export function Library({ files, onFileSelect, filter }: LibraryProps) {
                 }}
               >
                 {files.length === 0
-                  ? "No files found. Mount a directory to get started."
+                  ? "No files found. Add a workspace to get started."
                   : "No files match the current filter."}
               </td>
             </tr>

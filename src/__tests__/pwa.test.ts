@@ -94,13 +94,20 @@ describe("PwaAdapter", () => {
 // ─── 2. InstallPrompt Tests ─────────────────────────────────────────────
 
 // Mock CodeMirror modules so React rendering doesn't break
-vi.mock("@codemirror/state", () => ({
-  EditorState: {
-    create: vi.fn(({ doc }: { doc: string }) => ({
-      doc: { toString: () => doc },
-    })),
-  },
-}));
+vi.mock("@codemirror/state", () => {
+  class MockCompartment {
+    of() { return []; }
+    reconfigure() { return {}; }
+  }
+  return {
+    EditorState: {
+      create: vi.fn(({ doc }: { doc: string }) => ({
+        doc: { toString: () => doc },
+      })),
+    },
+    Compartment: MockCompartment,
+  };
+});
 vi.mock("@codemirror/view", () => {
   function EditorViewCtor({ parent }: { state: unknown; parent: HTMLElement }) {
     const el = document.createElement("div");

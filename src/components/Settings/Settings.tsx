@@ -6,7 +6,7 @@ import { Select } from "../common/Select";
 import { Toggle } from "../common/Toggle";
 import { Button } from "../common/Button";
 import { Tooltip } from "../common/Tooltip";
-import type { PlatformCapabilities, PlatformAdapter } from "../../platform/platform";
+import type { PlatformCapabilities } from "../../platform/platform";
 import type { ColorMode, VisualStyle } from "../../hooks/useTheme";
 
 // ─── Shared styles ──────────────────────────────────────────────────────
@@ -209,10 +209,9 @@ function ExtensionEditor({
 
 interface SettingsProps {
   capabilities: PlatformCapabilities;
-  platform: PlatformAdapter | null;
 }
 
-export function Settings({ capabilities, platform }: SettingsProps) {
+export function Settings({ capabilities }: SettingsProps) {
   const { config, updateConfig, resetConfig } = useConfig();
   const theme = useTheme();
 
@@ -233,15 +232,6 @@ export function Settings({ capabilities, platform }: SettingsProps) {
     },
     [updateConfig, theme],
   );
-
-  // ── Library handlers ───────────────────────────────────────────────────
-  const handleMountDirectory = useCallback(async () => {
-    if (!platform) return;
-    const dir = await platform.openDirectoryDialog();
-    if (dir) {
-      updateConfig("library", { mountPath: dir });
-    }
-  }, [platform, updateConfig]);
 
   const modeButtons: { label: string; value: ColorMode }[] = [
     { label: "Light", value: "light" },
@@ -328,6 +318,14 @@ export function Settings({ capabilities, platform }: SettingsProps) {
               ]}
             />
           </div>
+        </div>
+
+        <div style={fieldRowStyle}>
+          <div><span style={fieldLabelStyle}>Show button labels</span><div style={fieldHintStyle}>Display text labels alongside icons on toolbar buttons</div></div>
+          <Toggle
+            checked={config.appearance.showButtonLabels}
+            onChange={(v) => updateConfig("appearance", { showButtonLabels: v })}
+          />
         </div>
       </section>
 
@@ -556,73 +554,38 @@ export function Settings({ capabilities, platform }: SettingsProps) {
         />
       </section>
 
-      {/* ── Section 6: Library (desktop only) ──────────────────────────── */}
-      {capabilities.hasFilesystem && (
-        <section data-testid="settings-library" style={cardStyle}>
-          <h2 style={headingStyle}>Library</h2>
-          <p style={descriptionStyle}>Configure the file library for browsing markdown files.</p>
+      {/* ── Section 6: Advanced ────────────────────────────────────────── */}
+      <section data-testid="settings-advanced" style={cardStyle}>
+        <h2 style={headingStyle}>Advanced</h2>
+        <p style={descriptionStyle}>Low-level settings for debugging and diagnostics.</p>
 
-          <div style={fieldRowStyle}>
-            <div><span style={fieldLabelStyle}>Mount directory</span><div style={fieldHintStyle}>Root folder scanned for markdown files</div></div>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", ...fieldControlStyle }}>
-              <Tooltip content="Select a directory to browse for markdown files">
-                <Button variant="accent" onClick={handleMountDirectory}>
-                  Choose...
-                </Button>
-              </Tooltip>
-              <span
-                style={{
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-text-secondary)",
-                  fontFamily: "var(--font-ui)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {config.library.mountPath ?? "No directory mounted"}
-              </span>
-            </div>
+        <div style={fieldRowStyle}>
+          <div>
+            <label style={fieldLabelStyle}>Log verbosity</label>
+            <p style={fieldHintStyle}>
+              Minimum severity for persisted log entries. Events below this level are discarded.
+            </p>
           </div>
-
-          <div style={fieldRowStyle}>
-            <div><span style={fieldLabelStyle}>Recursive scan</span><div style={fieldHintStyle}>Include files in sub-directories</div></div>
-            <Toggle
-              checked={config.library.recursive}
-              onChange={(v) => updateConfig("library", { recursive: v })}
-            />
-          </div>
-
-          <div style={fieldRowStyle}>
-            <div><span style={fieldLabelStyle}>Show hidden files</span><div style={fieldHintStyle}>Include dot-prefixed files and folders</div></div>
-            <Toggle
-              checked={config.library.showHidden}
-              onChange={(v) => updateConfig("library", { showHidden: v })}
-            />
-          </div>
-
-          <div style={fieldRowStyle}>
-            <div><span style={fieldLabelStyle}>Independent extensions</span><div style={fieldHintStyle}>Use a separate extension list for library scanning</div></div>
-            <Toggle
-              checked={config.library.useIndependentExtensions}
-              onChange={(v) =>
-                updateConfig("library", { useIndependentExtensions: v })
-              }
-            />
-          </div>
-
-          {config.library.useIndependentExtensions && (
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <ExtensionEditor
-                extensions={config.library.independentExtensions}
-                onChange={(exts) =>
-                  updateConfig("library", { independentExtensions: exts })
+          <div style={fieldControlStyle}>
+            <Tooltip content="Controls which log levels are stored in the database">
+              <Select
+                value={config.advanced.logVerbosity}
+                onChange={(value) =>
+                  updateConfig("advanced", {
+                    logVerbosity: value as "debug" | "info" | "warning" | "error",
+                  })
                 }
+                options={[
+                  { value: "debug", label: "Debug" },
+                  { value: "info", label: "Info" },
+                  { value: "warning", label: "Warning" },
+                  { value: "error", label: "Error" },
+                ]}
               />
-            </div>
-          )}
-        </section>
-      )}
+            </Tooltip>
+          </div>
+        </div>
+      </section>
 
       {/* ── Reset ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

@@ -14,13 +14,20 @@ let mockViewInstance: {
 } | null = null;
 let capturedUpdateListener: ((update: { docChanged: boolean; state: { doc: { toString: () => string } } }) => void) | null = null;
 
-vi.mock("@codemirror/state", () => ({
-  EditorState: {
-    create: vi.fn(({ doc }: { doc: string }) => ({
-      doc: { toString: () => doc },
-    })),
-  },
-}));
+vi.mock("@codemirror/state", () => {
+  class MockCompartment {
+    of() { return []; }
+    reconfigure() { return {}; }
+  }
+  return {
+    EditorState: {
+      create: vi.fn(({ doc }: { doc: string }) => ({
+        doc: { toString: () => doc },
+      })),
+    },
+    Compartment: MockCompartment,
+  };
+});
 
 vi.mock("@codemirror/view", () => {
   const lineNumbers = vi.fn(() => []);

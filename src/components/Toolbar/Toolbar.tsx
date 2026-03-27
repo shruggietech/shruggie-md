@@ -1,6 +1,5 @@
-import { Eye, Columns2, FolderOpen, Settings, FileCode, FileText, RefreshCw, Search } from "lucide-react";
+import { Eye, Columns2, FolderOpen, Settings, FileDown, RefreshCw, Search, SquarePen, ChevronDown, ChevronUp, FolderOpenDot, FilePlus } from "lucide-react";
 import { Button, SplitButton } from "../common";
-import { UrlInput } from "./UrlInput";
 import type { ViewMode } from "@/hooks/useViewMode";
 
 export interface ToolbarProps {
@@ -8,7 +7,13 @@ export interface ToolbarProps {
   onViewChange: (view: ViewMode) => void;
   fileName: string | null;
   hasFilesystem: boolean;
+  showButtonLabels?: boolean;
+  // Pop-down toolbar panel
+  toolbarPanelExpanded?: boolean;
+  onToggleToolbarPanel?: () => void;
   // File operations
+  onOpen?: () => void;
+  onNewDocument?: () => void;
   onSave?: () => void;
   onSaveAs?: () => void;
   hasFilePath?: boolean;
@@ -16,39 +21,36 @@ export interface ToolbarProps {
   isSaving?: boolean;
   lastSaved?: Date | null;
   // Export
-  onExportHtml?: () => void;
-  onExportPdf?: () => void;
-  // Remote URL
-  onFetchUrl?: (url: string) => void;
-  isFetchingUrl?: boolean;
-  fetchUrlError?: string | null;
+  onExport?: () => void;
   // File watcher
   isRefreshing?: boolean;
-  // Library controls
-  onMountDirectory?: () => void;
-  onRefreshLibrary?: () => void;
-  libraryFilter?: string;
-  onLibraryFilterChange?: (filter: string) => void;
-  isLibraryScanning?: boolean;
+  // Workspace controls
+  onRefreshWorkspaces?: () => void;
+  workspacesFilter?: string;
+  onWorkspacesFilterChange?: (filter: string) => void;
+  isWorkspacesScanning?: boolean;
 }
 
 interface ViewButton {
   mode: ViewMode;
   icon: typeof Eye;
   tooltip: string;
+  label: string;
   requiresFilesystem?: boolean;
 }
 
 const viewButtons: ViewButton[] = [
-  { mode: "full-view", icon: Eye, tooltip: "Full view (Ctrl+1)" },
-  { mode: "split-view", icon: Columns2, tooltip: "Split view (Ctrl+2)" },
+  { mode: "view", icon: Eye, tooltip: "View (Ctrl+1)", label: "View" },
+  { mode: "edit", icon: Columns2, tooltip: "Edit (Ctrl+2)", label: "Edit" },
+  { mode: "edit-only", icon: SquarePen, tooltip: "Edit Only (Ctrl+4)", label: "Edit Only" },
   {
-    mode: "library",
+    mode: "workspaces",
     icon: FolderOpen,
-    tooltip: "Library (Ctrl+3)",
+    tooltip: "Workspaces (Ctrl+3)",
+    label: "Workspaces",
     requiresFilesystem: true,
   },
-  { mode: "settings", icon: Settings, tooltip: "Settings (Ctrl+,)" },
+  { mode: "settings", icon: Settings, tooltip: "Settings (Ctrl+,)", label: "Settings" },
 ];
 
 /**
@@ -66,26 +68,27 @@ export function Toolbar({
   onViewChange,
   fileName,
   hasFilesystem,
+  showButtonLabels = true,
+  toolbarPanelExpanded = false,
+  onToggleToolbarPanel,
+  onOpen,
+  onNewDocument,
   onSave,
   onSaveAs,
   hasFilePath = false,
   canSave = false,
   isSaving = false,
   lastSaved = null,
-  onExportHtml,
-  onExportPdf,
-  onFetchUrl,
-  isFetchingUrl = false,
-  fetchUrlError = null,
+  onExport,
   isRefreshing = false,
-  onMountDirectory,
-  onRefreshLibrary,
-  libraryFilter = "",
-  onLibraryFilterChange,
-  isLibraryScanning = false,
+  onRefreshWorkspaces,
+  workspacesFilter = "",
+  onWorkspacesFilterChange,
+  isWorkspacesScanning = false,
 }: ToolbarProps) {
   const savedStatus = formatSavedStatus(lastSaved);
-  const isLibraryView = activeView === "library";
+  const isWorkspacesView = activeView === "workspaces";
+  const showToolbarChevron = onToggleToolbarPanel && activeView !== "workspaces" && activeView !== "settings";
 
   return (
     <header
@@ -147,6 +150,8 @@ export function Toolbar({
               <Button
                 icon={btn.icon}
                 tooltip={btn.tooltip}
+                label={btn.label}
+                showLabel={showButtonLabels}
                 onClick={() => onViewChange(btn.mode)}
               />
             </div>
@@ -154,30 +159,34 @@ export function Toolbar({
         })}
       </nav>
 
-      {isLibraryView ? (
+      {/* Pop-down toolbar chevron */}
+      {showToolbarChevron && (
+        <Button
+          icon={toolbarPanelExpanded ? ChevronUp : ChevronDown}
+          tooltip={toolbarPanelExpanded ? "Hide quick settings" : "Show quick settings"}
+          label=""
+          showLabel={false}
+          onClick={onToggleToolbarPanel}
+        />
+      )}
+
+      {isWorkspacesView ? (
         <>
-          {/* Library-specific controls */}
-          <div data-testid="toolbar-library-controls" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center", marginLeft: "var(--space-3)", flex: 1, minWidth: 0 }}>
-            {onMountDirectory && (
-              <Button
-                icon={FolderOpen}
-                tooltip="Mount directory"
-                onClick={onMountDirectory}
-              >
-                Mount
-              </Button>
-            )}
-            {onRefreshLibrary && (
+          {/* Workspace-specific controls */}
+          <div data-testid="toolbar-workspaces-controls" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center", marginLeft: "var(--space-3)", flex: 1, minWidth: 0 }}>
+            {onRefreshWorkspaces && (
               <Button
                 icon={RefreshCw}
-                tooltip="Refresh library"
-                onClick={onRefreshLibrary}
-                disabled={isLibraryScanning}
+                tooltip="Refresh workspace"
+                label="Refresh"
+                showLabel={showButtonLabels}
+                onClick={onRefreshWorkspaces}
+                disabled={isWorkspacesScanning}
               />
             )}
-            {onLibraryFilterChange && (
+            {onWorkspacesFilterChange && (
               <div
-                data-testid="toolbar-library-filter"
+                data-testid="toolbar-workspaces-filter"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -188,11 +197,11 @@ export function Toolbar({
               >
                 <Search size={14} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
                 <input
-                  data-testid="library-filter-input"
+                  data-testid="workspaces-filter-input"
                   type="text"
-                  aria-label="Filter library files"
-                  value={libraryFilter}
-                  onChange={(e) => onLibraryFilterChange(e.target.value)}
+                  aria-label="Filter workspace files"
+                  value={workspacesFilter}
+                  onChange={(e) => onWorkspacesFilterChange(e.target.value)}
                   placeholder="Filter files..."
                   style={{
                     backgroundColor: "var(--color-bg-tertiary)",
@@ -217,9 +226,9 @@ export function Toolbar({
             )}
           </div>
 
-          {/* Library status */}
+          {/* Workspace status */}
           <div data-testid="toolbar-status" style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            {isLibraryScanning && (
+            {isWorkspacesScanning && (
               <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-xs)" }}>
                 Scanning...
               </span>
@@ -248,6 +257,24 @@ export function Toolbar({
 
           {/* Action buttons */}
           <div data-testid="toolbar-actions" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center" }}>
+            {onOpen && (
+              <Button
+                icon={FolderOpenDot}
+                tooltip="Open (Ctrl+O)"
+                label="Open"
+                showLabel={showButtonLabels}
+                onClick={onOpen}
+              />
+            )}
+            {onNewDocument && (
+              <Button
+                icon={FilePlus}
+                tooltip="New Document"
+                label="New"
+                showLabel={showButtonLabels}
+                onClick={onNewDocument}
+              />
+            )}
             {(onSave || onSaveAs) && (
               <SplitButton
                 hasPath={hasFilePath}
@@ -257,25 +284,13 @@ export function Toolbar({
                 isSaving={isSaving}
               />
             )}
-            {onExportHtml && (
+            {onExport && (
               <Button
-                icon={FileCode}
-                tooltip="Export HTML (Ctrl+Shift+H)"
-                onClick={onExportHtml}
-              />
-            )}
-            {onExportPdf && (
-              <Button
-                icon={FileText}
-                tooltip="Export PDF (Ctrl+Shift+P)"
-                onClick={onExportPdf}
-              />
-            )}
-            {onFetchUrl && (
-              <UrlInput
-                onSubmit={onFetchUrl}
-                isLoading={isFetchingUrl}
-                error={fetchUrlError}
+                icon={FileDown}
+                tooltip="Export (Ctrl+Shift+E)"
+                label="Export"
+                showLabel={showButtonLabels}
+                onClick={onExport}
               />
             )}
           </div>

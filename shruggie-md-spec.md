@@ -44,13 +44,13 @@
   - [5.1. View Modes](#51-view-modes)
   - [5.2. Full-View Mode](#52-full-view-mode)
   - [5.3. Split-View Mode](#53-split-view-mode)
-  - [5.4. Library View](#54-library-view)
+  - [5.4. Workspaces View](#54-workspaces-view)
   - [5.5. Settings View](#55-settings-view)
 - [6. Core Features](#6-core-features)
-  - [6.1. Viewing](#61-viewing)
+  - [6.1. Opening Files](#61-viewing)
   - [6.2. Editing](#62-editing)
-  - [6.3. Converting](#63-converting)
-  - [6.4. Remote URL Fetching](#64-remote-url-fetching)
+  - [6.3. Exporting](#63-exporting)
+  - [6.4. Remote Content](#64-remote-content)
 - [7. Editor Engine](#7-editor-engine)
   - [7.1. CodeMirror Integration](#71-codemirror-integration)
   - [7.2. Syntax Highlighting](#72-syntax-highlighting)
@@ -59,12 +59,14 @@
   - [8.1. Rendering Pipeline](#81-rendering-pipeline)
   - [8.2. Selectable Engines](#82-selectable-engines)
   - [8.3. Rendered Content Styling](#83-rendered-content-styling)
-- [9. Library Mode](#9-library-mode)
+- [9. Workspaces](#9-workspaces)
   - [9.1. Purpose](#91-purpose)
-  - [9.2. Setup](#92-setup)
-  - [9.3. Library Table](#93-library-table)
-  - [9.4. Traversal and Filtering](#94-traversal-and-filtering)
-  - [9.5. Extension Rules](#95-extension-rules)
+  - [9.2. Default Workspace](#92-default-workspace)
+  - [9.3. Workspace Types](#93-workspace-types)
+  - [9.4. Workspace CRUD](#94-workspace-crud)
+  - [9.5. Workspace File Table](#95-workspace-file-table)
+  - [9.6. Per-Workspace Settings](#96-per-workspace-settings)
+  - [9.7. Traversal and Filtering](#97-traversal-and-filtering)
 - [10. Configuration and Preferences](#10-configuration-and-preferences)
   - [10.1. Configuration Architecture](#101-configuration-architecture)
   - [10.2. Theme and Appearance](#102-theme-and-appearance)
@@ -91,7 +93,7 @@
 
 <div style="text-align:justify">
 
-This document is the authoritative technical specification for Shruggie Markdown, a cross-platform markdown viewer, editor, and converter. It is written for an AI-first, Human-second audience. Its primary consumers are AI implementation agents operating within isolated context windows. Every section provides sufficient detail for an AI agent to produce correct implementation decisions without requiring interactive clarification.
+This document is the authoritative technical specification for Shruggie Markdown, a cross-platform markdown viewer, editor, and exporter. It is written for an AI-first, Human-second audience. Its primary consumers are AI implementation agents operating within isolated context windows. Every section provides sufficient detail for an AI agent to produce correct implementation decisions without requiring interactive clarification.
 
 </div>
 
@@ -107,7 +109,7 @@ This document is the authoritative technical specification for Shruggie Markdown
 - Markdown viewing with live preview, theming, and syntax highlighting.
 - Markdown editing with split-view, linting, and configurable engines.
 - Markdown-to-HTML and markdown-to-PDF conversion.
-- Library mode for flat file management on desktop installs.
+- Workspace system for organizing markdown documents across internal and external directories.
 - Configuration and preference persistence.
 
 **Out of Scope:**
@@ -125,10 +127,11 @@ This document is the authoritative technical specification for Shruggie Markdown
 |------|------------|
 | **Full-view** | The default display mode showing only the rendered markdown preview. |
 | **Split-view** | A side-by-side display mode showing the editor pane alongside the rendered preview pane. |
-| **Library** | The flat file management interface available only in native desktop installs. |
+| **Workspace** | A named container for markdown documents. Each workspace maps to a directory on disk (desktop) or a logical partition in IndexedDB (web/PWA/Chrome). |
+| **Internal workspace** | A workspace whose directory is managed by the application inside `{app_data_dir}/workspaces/{name}/`. |
+| **External workspace** | A workspace that references a user-chosen directory on disk. The application does not manage the directory lifecycle. |
 | **Engine** | The markdown compilation library used to transform markdown source into HTML. |
 | **Linter** | A static analysis tool that checks markdown source for style and correctness issues. |
-| **Mount** | The act of configuring a local directory as the source for library mode. |
 
 ---
 
@@ -219,7 +222,7 @@ The application is structured as a shared React frontend with platform-specific 
 
 ```
 shared frontend (React + TypeScript)
-    ├── UI components (viewer, editor, settings, library)
+    ├── UI components (viewer, editor, settings, workspaces)
     ├── markdown engine abstraction
     ├── theme system
     └── configuration state management
@@ -243,7 +246,7 @@ shared frontend (React + TypeScript)
 
 <div style="text-align:justify">
 
-Platform-specific code is isolated behind a thin abstraction layer (`platform.ts`) that exposes a uniform API for file I/O, preference storage, and capability detection. The frontend queries platform capabilities at startup and conditionally enables features (e.g., library mode is enabled only when the platform reports filesystem access).
+Platform-specific code is isolated behind a thin abstraction layer (`platform.ts`) that exposes a uniform API for file I/O, preference storage, and capability detection. The frontend queries platform capabilities at startup and conditionally enables features (e.g., workspace features are enabled only when the platform reports filesystem access).
 
 </div>
 
@@ -403,14 +406,26 @@ All spacing values are multiples of a 4px base unit, following an 8pt-grid-align
 
 ### 4.6. Component Styling
 
-**Toolbar.** A single horizontal bar at the top of the viewport. Height: `40px`. Background: `--color-bg-secondary`. Bottom border: `1px solid --color-border-primary`. Contains the view-mode toggle, file name display, and action buttons. Buttons use icon-only presentation with tooltips; no text labels in the toolbar.
+**Toolbar.** A single horizontal bar at the top of the viewport. Height: `40px`. Background: `--color-bg-secondary`. Bottom border: `1px solid --color-border-primary`. Contains the view-mode segmented control, file name display, action buttons, and a chevron toggle for the pop-down quick-settings panel. Buttons use icon-only presentation by default, with tooltips on all controls. An optional `showButtonLabels` appearance setting (see [§10.2](#102-theme-and-appearance)) renders a text label alongside each toolbar button icon.
+
+**Mode Switcher.** A segmented control of five buttons (View, Edit, Edit Only, Workspaces, Settings) using icon + label pairs from the Lucide icon set: Eye + "View", Columns2 + "Edit", SquarePen + "Edit Only", FolderOpen + "Workspaces", Settings + "Settings". The active mode is highlighted with `--color-bg-active`. Workspaces is hidden when `hasFilesystem` is false. When `showButtonLabels` is off, text labels hide but icons and layout remain coherent.
+
+**Pop-Down Quick-Settings Panel.** A collapsible panel that slides down from the toolbar when the user clicks the chevron (`ChevronDown` / `ChevronUp`) button. Animation: slide down over 150ms ease-out. The panel's visibility state is persisted in `general.editorToolbarExpanded` (default `false`). The panel is hidden when Workspaces or Settings views are active. Content varies by active view mode:
+
+- *View mode:* Preview font size and line height inputs.
+- *Edit mode:* Editor section (font size, line height, line numbers toggle, word wrap toggle, linting toggle, linter dropdown) separated by a vertical divider from a Preview section (font size, line height).
+- *Edit Only mode:* Editor section only (font size, line height, line numbers toggle, word wrap toggle, linting toggle, linter dropdown).
+
+All controls in the pop-down panel have tooltips. Changes apply immediately and update the same config keys used by the Settings page.
 
 **Buttons.** Two visual variants:
 
 - *Ghost* (default): transparent background, `--color-text-secondary` foreground. On hover: `--color-bg-hover` background, `--color-text-primary` foreground.
 - *Accent*: `--color-accent` background, white foreground. On hover: `--color-accent-hover` background. Used sparingly (primary conversion actions, confirm dialogs).
 
-All buttons use `--radius-sm` border radius. Minimum tap target: `32px` square. Focus states use a `2px` outline offset with `--color-accent`.
+All buttons use `--radius-sm` border radius. Minimum tap target: `32px` square. Focus states use a `2px` outline offset with `--color-accent` via `:focus-visible`; no JavaScript focus/blur handlers are used for focus ring management.
+
+**Scrollbars.** All scrollable containers use thin scrollbars styled to match the active theme. Width: `6px`. Track color: `--color-bg-secondary`. Thumb color: `--color-bg-active`; on hover: `--color-bg-hover`. Firefox receives `scrollbar-width: thin` with matching `scrollbar-color`. WebKit browsers receive custom `::-webkit-scrollbar` pseudo-element styling.
 
 **Inputs.** Background: `--color-bg-tertiary`. Border: `1px solid --color-border-primary`. On focus: border transitions to `--color-accent`. Padding: `--space-2` horizontal, `--space-1` vertical. Text: `--font-size-base`.
 
@@ -464,24 +479,27 @@ Icons use the Lucide icon set (the fork of Feather Icons). All icons render at `
 
 ### 5.1. View Modes
 
-The application has four top-level views, accessed via the toolbar or keyboard shortcuts:
+The application has five top-level views, three of which are content modes and two of which are navigation overlays:
 
 | View | Shortcut | Description |
 |------|----------|-------------|
-| Full-view | `Ctrl/Cmd+1` | Rendered markdown preview only. Default on file open. |
-| Split-view | `Ctrl/Cmd+2` | Side-by-side editor and preview. |
-| Library | `Ctrl/Cmd+3` | File management table. Desktop only. |
+| View | `Ctrl/Cmd+1` | Rendered markdown preview only. Default on web/PWA/Chrome Extension. |
+| Edit | `Ctrl/Cmd+2` | Side-by-side editor and preview with draggable divider. Default on desktop. |
+| Edit Only | `Ctrl/Cmd+4` | Full-window CodeMirror editor, no preview pane. |
+| Workspaces | `Ctrl/Cmd+3` | Workspace file management. Desktop only. |
 | Settings | `Ctrl/Cmd+,` | Configuration panel. |
 
-The initial view mode is platform-aware: desktop (Tauri) defaults to split-view; web, PWA, and Chrome extension default to full-view. If the user has previously selected a view mode (full-view or split-view), that choice is persisted in `general.lastViewMode` and restored on next launch. Library and settings views are transient navigation and are never persisted.
+The toolbar displays a segmented mode switcher with icon + label buttons for View, Edit, Edit Only, Workspaces (desktop only), and Settings. The active mode is highlighted with `--color-bg-active`. When `appearance.showButtonLabels` is off, labels are hidden but the icons and segmented control layout remain.
+
+The initial view mode is platform-aware: desktop (Tauri) defaults to Edit; web, PWA, and Chrome extension default to View. If the user has previously selected a content mode, that choice is persisted in `general.lastViewMode` (valid values: `"view"`, `"edit"`, `"edit-only"`) and restored on next launch. Workspaces and Settings are transient navigation overlays and are never persisted. Legacy config values `"full-view"` and `"split-view"` are silently migrated to `"view"` and `"edit"` respectively.
 
 <a name="52-full-view-mode" id="52-full-view-mode"></a>
 
-### 5.2. Full-View Mode
+### 5.2. View Mode
 
 <div style="text-align:justify">
 
-Full-view is the default on web and PWA targets. On desktop (Tauri), the default is split-view unless overridden by a persisted `general.lastViewMode` preference. The rendered markdown fills the viewport below the toolbar. Content is horizontally centered with a maximum reading width of `720px` and horizontal padding of `--space-8` on each side. This produces a comfortable, Notion-like reading column that prevents excessively long line lengths on wide displays.
+View mode is the default on web and PWA targets. On desktop (Tauri), the default is Edit mode unless overridden by a persisted `general.lastViewMode` preference. The rendered markdown fills the viewport below the toolbar. Content is horizontally centered with a maximum reading width of `720px` and horizontal padding of `--space-8` on each side. This produces a comfortable, Notion-like reading column that prevents excessively long line lengths on wide displays.
 
 </div>
 
@@ -489,21 +507,29 @@ When viewing a local file on desktop, the application watches the file for chang
 
 <a name="53-split-view-mode" id="53-split-view-mode"></a>
 
-### 5.3. Split-View Mode
+### 5.3. Edit Mode
 
 <div style="text-align:justify">
 
-Split-view places the CodeMirror editor on the left and the rendered preview on the right. The default split ratio is 50/50. A draggable divider allows the user to resize the panes. The minimum width for either pane is `280px`. Pane proportions are persisted in configuration and restored on next launch.
+Edit mode places the CodeMirror editor on the left and the rendered preview on the right. The default split ratio is 50/50. A draggable divider allows the user to resize the panes. The minimum width for either pane is `280px`. Pane proportions are persisted in configuration and restored on next launch.
 
 </div>
 
 Scroll synchronization: the preview pane scroll position tracks the editor cursor position. When the cursor moves in the editor, the preview scrolls to bring the corresponding rendered content into view. This synchronization uses a proportional mapping (editor scroll percentage maps to preview scroll percentage) rather than per-line tracking, which avoids visual jitter with content that expands during rendering (tables, code blocks, images).
 
-<a name="54-library-view" id="54-library-view"></a>
+#### 5.3.1. Edit Only Mode
 
-### 5.4. Library View
+<div style="text-align:justify">
 
-The library view replaces the editor/preview area with a sortable, filterable data table. See [§9](#9-library-mode) for full library behavior. The toolbar adapts to show library-specific controls (mount directory button, refresh, filter input).
+Edit Only mode renders the CodeMirror editor at full viewport width (minus toolbar height). No preview pane or divider is displayed. The editor respects all editor settings (font family, font size, line height, line numbers, word wrap, linting). Save, Save As, and all keyboard shortcuts work identically to Edit mode.
+
+</div>
+
+<a name="54-workspaces-view" id="54-workspaces-view"></a>
+
+### 5.4. Workspaces View
+
+The workspaces view replaces the editor/preview area with a workspace management interface. A collapsible workspace list panel on the right lists all workspaces, with the default workspace pinned at the top. Selecting a workspace displays its files in a sortable, filterable data table. See [§9](#9-workspaces) for full workspace behavior. The toolbar adapts to show workspace-specific controls (refresh, filter input).
 
 <a name="55-settings-view" id="55-settings-view"></a>
 
@@ -522,7 +548,9 @@ Settings sections (in order of appearance):
 3. **Preview** — Font selection, font size, line height.
 4. **Markdown Engine** — Engine selection dropdown.
 5. **File Extensions** — Extension whitelist editor.
-6. **Library** (desktop only) — Mount directory, recursion toggle, hidden file toggle, independent extension rules toggle.
+6. **Advanced** — Log verbosity setting.
+
+Per-workspace settings (recursion, hidden files, independent extensions) are managed through the workspace settings modal, not the global Settings view.
 
 ---
 
@@ -533,13 +561,23 @@ Settings sections (in order of appearance):
 
 <a name="61-viewing" id="61-viewing"></a>
 
-### 6.1. Viewing
+### 6.1. Opening Files
 
-**Local files.** The application opens local markdown files either via CLI invocation (`shruggie-md <filepath>`), OS file association (double-click), or a file-open dialog within the application. The file is read from disk, compiled through the selected markdown engine, and rendered in the preview pane.
+Files are opened through a unified **Open dialog** (`Ctrl/Cmd+O` or the toolbar Open button). The dialog provides two source tabs:
+
+- **File tab.** Opens a native file picker limited to [recognized extensions](#105-file-extension-settings). The selected file is validated, read from disk, and its content is loaded into the editor/preview. If the file resides outside the selected workspace's directory, it is opened in-place (the workspace records the external path).
+- **URL tab.** Accepts a public URL. The application sends a plain `GET` request; if the response content-type is not a text type, the dialog displays an error. Content is loaded in read-only mode.
+
+The dialog also includes:
+
+- **Workspace selector.** A dropdown of all workspaces. The last option, "Add a new workspace…", expands inline workspace-creation fields (name input, Create/Cancel buttons). The default workspace is pre-selected.
+- **Name override.** An optional text field to override the document title derived from the file name or URL.
+
+**Document model.** Every opened file is registered in the documents table with a unique ID, source type (`local`, `remote`, or `internal`), source path/URL, and the selected workspace ID. This metadata is used for edit history, workspace browsing, and save-path tracking.
+
+**CLI and OS associations.** Files opened via CLI (`shruggie-md <filepath>`) or OS file association (double-click) bypass the dialog. The file is opened directly into the default workspace. URL arguments (`shruggie-md --url <url>`) are fetched and registered the same way.
 
 **Live reload.** On desktop, a filesystem watcher (Tauri's `watch` API) monitors the open file. When the file's modification timestamp changes, the source is re-read and the preview re-renders. The watcher debounces rapid successive changes with a 300ms delay to avoid unnecessary render cycles during active external editing.
-
-**Remote files.** The application can fetch and render raw markdown content from a public URL. Remote fetching is invoked through the toolbar (a URL input field) or via CLI (`shruggie-md --url <url>`). The application sends a plain `GET` request with no authentication headers. If the response content-type is not a text type, the application displays an error. A small info badge (`ⓘ`) in the toolbar opens a modal with usage instructions for remote fetching.
 
 <a name="62-editing" id="62-editing"></a>
 
@@ -547,34 +585,48 @@ Settings sections (in order of appearance):
 
 <div style="text-align:justify">
 
-Editing is available in split-view mode. The CodeMirror editor provides the editing surface with full markdown syntax highlighting, configurable linting, and standard editor conveniences (undo/redo, find/replace, line numbers). Changes in the editor are reflected in the preview pane in real-time with a 150ms debounce on the render cycle.
+Editing is available in split-view and edit-only modes. The CodeMirror editor provides the editing surface with full markdown syntax highlighting, configurable linting, and standard editor conveniences (undo/redo, find/replace, line numbers). Changes in the editor are reflected in the preview pane in real-time with a 150ms debounce on the render cycle.
 
 </div>
 
-On desktop, edits can be saved back to the source file via `Ctrl/Cmd+S` (Save) or written to a new location via `Ctrl/Cmd+Shift+S` (Save As). Save overwrites the current file atomically (write to temp file, then rename). Save As opens a native file dialog to choose a destination; on success the working file path updates to the new location. In the Chrome extension and PWA targets, Save As triggers a browser download of the file. A context-aware SplitButton in the toolbar adapts its presentation: when a file path is established it shows Save (primary) + Save As (dropdown); when no path is established it shows a single Save As icon button.
+**New Document.** The toolbar New Document button creates a blank editor buffer, clears the file path and document association, and switches to edit mode.
 
-<a name="63-converting" id="63-converting"></a>
+**Saving.** On desktop, edits can be saved back to the source file via `Ctrl/Cmd+S` (Save) or written to a new location via `Ctrl/Cmd+Shift+S` (Save As). Save overwrites the current file atomically (write to temp file, then rename). Save As opens a native file dialog to choose a destination; on success the working file path updates to the new location. In the Chrome extension and PWA targets, Save As triggers a browser download. A context-aware SplitButton in the toolbar adapts its presentation: when a file path is established it shows Save (primary) + Save As (dropdown); when no path is established it shows a single Save As icon button.
 
-### 6.3. Converting
+**Edit history.** When a file is saved, the application creates an edit history snapshot via `storage.appendEditHistory()` and updates the document's `updated_at` timestamp. This enables future undo/version-tracking features.
 
-**Markdown to HTML.** The compiled HTML output (the same output rendered in the preview pane) is available for export via `Ctrl/Cmd+Shift+H` or the toolbar. On desktop, a native save dialog is presented to choose the destination file. On web/PWA/extension targets, the export falls back to a browser download. The exported HTML is a self-contained file with all styles inlined. No external stylesheet references are included.
+<a name="63-exporting" id="63-exporting"></a>
 
-**Markdown to PDF.** PDF export uses the browser's native print pathway:
+### 6.3. Exporting
+
+Export is accessed through a unified **Export dialog** (`Ctrl/Cmd+Shift+E` or the toolbar Export button). The dialog presents three format options:
+
+| Format | Description | Shortcut |
+|--------|-------------|----------|
+| **HTML** | Self-contained HTML file with all styles inlined. No external stylesheet references. | `Ctrl/Cmd+Shift+H` (direct) |
+| **PDF** | Print to PDF via the browser's native print dialog / Tauri PDF write. | `Ctrl/Cmd+Shift+P` (direct) |
+| **Markdown** | Raw markdown file (.md) saved via Save As. | — |
+
+The direct keyboard shortcuts (`Ctrl/Cmd+Shift+H` and `Ctrl/Cmd+Shift+P`) bypass the dialog and invoke the corresponding export immediately.
+
+**HTML export** produces the same compiled HTML that is rendered in the preview pane, wrapped in a self-contained document with inlined theme styles.
+
+**PDF export** uses the browser's native print pathway:
 
 1. The markdown is compiled to HTML.
-2. A print-specific stylesheet is applied. This stylesheet sets standard print margins, page numbers in the footer, no URL footers, and appropriate page-break behavior.
-3. `<hr>` elements in the source markdown are automatically replaced with CSS `page-break-before: always` rules, producing clean page breaks at horizontal rule positions.
+2. A print-specific stylesheet is applied (standard print margins, page numbers in the footer, no URL footers, appropriate page-break behavior).
+3. `<hr>` elements in the source markdown are replaced with CSS `page-break-before: always` rules.
 4. The print dialog is invoked (or, on desktop via Tauri, a direct PDF write operation if available).
 
-PDF export is triggered via `Ctrl/Cmd+Shift+P` or the toolbar.
+**Markdown export** writes the raw editor content via Save As with a `.md` extension.
 
-<a name="64-remote-url-fetching" id="64-remote-url-fetching"></a>
+<a name="64-remote-content" id="64-remote-content"></a>
 
-### 6.4. Remote URL Fetching
+### 6.4. Remote Content
 
-Remote URL fetching supports only publicly accessible endpoints. The application sends a plain HTTP `GET` request. CORS restrictions apply when running in browser contexts (Chrome extension, PWA). The Chrome extension uses the `host_permissions` declaration in the manifest to bypass CORS for user-specified URLs.
+Remote URL fetching supports only publicly accessible endpoints. The application sends a plain HTTP `GET` request. CORS restrictions apply in browser contexts (Chrome extension, PWA). The Chrome extension uses the `host_permissions` declaration in the manifest to bypass CORS for user-specified URLs.
 
-Fetched content is treated as read-only. The editor is available in split-view for inspection, but save operations are disabled for remote content. Fetched content is not cached to disk.
+Remote content is registered in the document model with `source_type: "remote"` and the original URL. The editor is available for inspection, but save operations are disabled for remote content. The toolbar Save button is disabled; only Export and Save As are available.
 
 ---
 
@@ -606,6 +658,8 @@ Required CodeMirror extensions:
 | `@codemirror/state` | Editor state management |
 
 The editor theme is derived from the application's color tokens. A custom CodeMirror theme is constructed at runtime from the active CSS custom property values, ensuring the editor appearance always matches the selected application theme.
+
+The `showLineNumbers` and `wordWrap` editor settings ([§10.3](#103-editor-preferences)) are wired to the CodeMirror instance via `Compartment`-based dynamic reconfiguration. When the user toggles these settings, the editor reconfigures in place without recreating the entire `EditorView`. Each setting is controlled by its own `Compartment` ref, and a `useEffect` dispatches a reconfigure transaction whenever the prop changes.
 
 <a name="72-syntax-highlighting" id="72-syntax-highlighting"></a>
 
@@ -714,10 +768,10 @@ Key rendered content styles:
 
 ---
 
-<a name="9-library-mode" id="9-library-mode"></a>
+<a name="9-workspaces" id="9-workspaces"></a>
 <hr class="print-page-break">
 
-## 9. Library Mode
+## 9. Workspaces
 
 <a name="91-purpose" id="91-purpose"></a>
 
@@ -725,21 +779,57 @@ Key rendered content styles:
 
 <div style="text-align:justify">
 
-Library mode provides a flat file management interface for users who maintain a collection of markdown files in a single directory tree. It is available only in the native desktop application (Tauri), not in the Chrome extension or PWA, because it requires direct filesystem access to a user-designated directory.
+The workspace system provides a document management interface for organizing markdown files into named containers. Each workspace maps to a directory on the filesystem (desktop) or a logical partition in IndexedDB (Chrome Extension / PWA). Multiple workspaces can exist simultaneously, each with independent settings.
 
 </div>
 
-<a name="92-setup" id="92-setup"></a>
+<a name="92-default-workspace" id="92-default-workspace"></a>
 
-### 9.2. Setup
+### 9.2. Default Workspace
 
-The user configures a single directory as the library root via the Library section of settings. This directory is "mounted" as the library. Only one directory may be mounted at a time. Changing the mounted directory replaces the previous library contents entirely; there is no merge behavior.
+On first launch (or when no workspaces exist in the database), the application creates a default workspace:
 
-<a name="93-library-table" id="93-library-table"></a>
+- **Type:** Internal.
+- **Name:** "Default" (read-only, cannot be renamed).
+- **Path (desktop):** `{app_data_dir}/workspaces/Default/`. Created on disk if it does not exist.
+- **Path (Chrome Extension / PWA):** `__internal__/Default` (logical identifier backed by IndexedDB).
+- **`is_default` flag:** `true` (`1` in SQLite).
+- The default workspace cannot be deleted.
 
-### 9.3. Library Table
+<a name="93-workspace-types" id="93-workspace-types"></a>
 
-The library view displays a sortable data table with the following columns:
+### 9.3. Workspace Types
+
+**Internal workspaces** are created and managed by the application. Their directories reside under `{app_data_dir}/workspaces/{name}/`. The application creates the directory when the workspace is created and removes it when the workspace is deleted.
+
+**External workspaces** reference a user-chosen directory on the filesystem. The directory must already exist. The application does not create, move, or delete external workspace directories. Only the workspace record in the database is affected by workspace management operations.
+
+On Chrome Extension and PWA platforms, only internal workspaces are available (no filesystem access for external directories).
+
+<a name="94-workspace-crud" id="94-workspace-crud"></a>
+
+### 9.4. Workspace CRUD
+
+**Creating a workspace:**
+
+- The user clicks "Add Workspace" from the workspace list panel.
+- Options: Internal (name only) or External (name + directory picker on desktop).
+- Name validation enforces: no empty names, 128-character maximum, no OS-disallowed characters (`< > : " / \ | ? *`, null bytes), no Windows reserved names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`), no leading/trailing dots.
+- Name uniqueness is enforced (case-insensitive comparison).
+
+**Deleting a workspace:**
+
+- Internal: removes the workspace record and its directory (with contents) from disk. A confirmation dialog warns the user.
+- External: removes only the workspace record. The directory on disk is not touched.
+- The default workspace cannot be deleted.
+
+**Workspace list panel:** Displayed as a collapsible right-aligned panel on the Workspaces view. The default workspace is always listed first. Each row shows the workspace name and an ellipsis button for settings.
+
+<a name="95-workspace-file-table" id="95-workspace-file-table"></a>
+
+### 9.5. Workspace File Table
+
+When a workspace is selected, the main content area displays a sortable data table:
 
 | Column | Content | Sort Behavior |
 |--------|---------|---------------|
@@ -754,24 +844,29 @@ Clicking a row opens the file in full-view mode. The table supports multi-column
 
 </div>
 
-<a name="94-traversal-and-filtering" id="94-traversal-and-filtering"></a>
+<a name="96-per-workspace-settings" id="96-per-workspace-settings"></a>
 
-### 9.4. Traversal and Filtering
+### 9.6. Per-Workspace Settings
 
-- By default, the library recursively traverses all subdirectories within the mounted root.
-- A toggle in Library settings disables recursion, limiting the library to top-level files only.
-- A separate toggle controls whether hidden files and directories (names starting with `.`) are included. Default: hidden items are excluded.
-- Non-markdown files (as determined by the active extension rules) are silently ignored. They do not appear in the table and no error is produced.
+Each workspace has its own settings, accessible via the ellipsis button on the workspace list panel. Settings open in a modal dialog.
 
-<a name="95-extension-rules" id="95-extension-rules"></a>
+| Setting | Type | Default | Notes |
+|---------|------|---------|-------|
+| Recursive traversal | boolean | `true` | Whether to scan subdirectories |
+| Show hidden files | boolean | `false` | Whether to include dotfiles |
+| Independent extension rules | boolean | `false` | When enabled, this workspace uses its own extension whitelist |
+| Extension whitelist | string[] | (global default) | Only visible when independent extension rules is enabled |
 
-### 9.5. Extension Rules
+Per-workspace settings are stored as a JSON string in the `settings` TEXT column of the `workspaces` table.
 
-<div style="text-align:justify">
+<a name="97-traversal-and-filtering" id="97-traversal-and-filtering"></a>
 
-By default, library mode follows the same file extension rules used in the application's global file extension settings ([§10.4](#104-file-extension-rules)). A toggle in the Library settings section allows library mode to define its own independent set of recognized extensions. When this toggle is enabled, a separate extension list editor appears within the Library settings.
+### 9.7. Traversal and Filtering
 
-</div>
+- By default, each workspace recursively traverses all subdirectories within its root.
+- The per-workspace recursion toggle disables recursion, limiting the scan to top-level files only.
+- The per-workspace hidden files toggle controls whether dotfiles are included. Default: hidden items are excluded.
+- Non-markdown files (as determined by the active extension rules — global or per-workspace) are silently ignored.
 
 ---
 
@@ -786,17 +881,32 @@ By default, library mode follows the same file extension rules used in the appli
 
 <div style="text-align:justify">
 
-Configuration is stored as JSON. On desktop (Tauri), preferences are read from and written to the platform-standard application data directory ([§10.5](#105-storage-locations)). In the Chrome extension, preferences use the `chrome.storage.sync` API. In the PWA, preferences use `IndexedDB` via a thin wrapper.
+Configuration is persisted via a **storage abstraction layer** that selects the appropriate backend per platform:
+
+- **Desktop (Tauri):** SQLite database (`shruggie-md.db`) located in the platform-standard application data directory ([§10.5](#105-storage-locations)), accessed through `tauri-plugin-sql`. Configuration entries are stored in a `config` table as key-value pairs with dotted paths (e.g., `editor.fontSize`) and JSON-encoded values.
+- **Chrome Extension / PWA:** IndexedDB database named `shruggie-md`, version 1. The `config` object store uses the same dotted-path key-value schema. The Chrome Extension retains `chrome.storage.sync` only as a legacy fallback; the primary store is IndexedDB.
 
 </div>
 
+The storage abstraction (`StorageAdapter` interface in `src/storage/`) exposes methods for:
+
+- **Config** — key-value read/write (replaces legacy JSON config persistence).
+- **Documents** — CRUD for the document registry.
+- **Workspaces** — CRUD for the workspace registry.
+- **Logs** — append and query with filters ([§10.6](#106-logging)).
+- **Edit History** — append, query, and prune per-document snapshots.
+
 All configuration keys have compiled defaults in the application source. User-set values override defaults. Unknown keys in persisted configuration are silently ignored for forward compatibility.
+
+**Migration:** On first launch after upgrading from a JSON-config release, the application detects the old `config.json` (desktop) or legacy IndexedDB/localStorage store and migrates its contents into the new `config` table. After a successful migration the old file is renamed to `config.json.bak`. An `info`-level log entry records the migration. If no old config exists (fresh install), defaults are used.
 
 ### 10.1.1. General Settings
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| Last view mode | `"full-view"` \| `"split-view"` \| `null` | `null` | Persisted user preference for the initial view mode. When `null`, the platform-aware default applies (split-view on desktop, full-view on web). Only `full-view` and `split-view` are persisted; transient views (library, settings) are never stored. |
+| Last view mode | `"view"` \| `"edit"` \| `"edit-only"` \| `null` | `null` | Persisted user preference for the initial view mode. When `null`, the platform-aware default applies (Edit on desktop, View on web). Only content modes are persisted; transient views (Workspaces, Settings) are never stored. Legacy values `"full-view"` and `"split-view"` are silently migrated to `"view"` and `"edit"`. |
+| Editor toolbar expanded | `boolean` | `false` | Whether the pop-down quick-settings panel below the toolbar is expanded on launch. |
+| Log verbosity | `"debug"` \| `"info"` \| `"warning"` \| `"error"` | `"warning"` | Controls the minimum severity level for persisted log entries. Entries below this threshold are still written to the browser console during development but are not stored. Exposed in the **Advanced** section of the Settings panel ([§10.6](#106-logging)). |
 
 <a name="102-theme-and-appearance" id="102-theme-and-appearance"></a>
 
@@ -805,8 +915,7 @@ All configuration keys have compiled defaults in the application source. User-se
 | Setting | Type | Default | Options |
 |---------|------|---------|---------|
 | Color mode | enum | `dark` | `light`, `dark`, `system` |
-| Visual style | enum | `default` | A small curated set of named styles (e.g., `default`, `warm`, `cool`, `monochrome`) |
-
+| Visual style | enum | `default` | A small curated set of named styles (e.g., `default`, `warm`, `cool`, `monochrome`) || Show button labels | boolean | `true` | When enabled, toolbar buttons display a text label alongside their icon. When disabled, buttons show the icon only (with tooltips). |
 <div style="text-align:justify">
 
 Visual styles adjust the color token values within the active color mode. For example, the `warm` style shifts surface colors toward amber tones, while the `monochrome` style reduces the accent palette to grayscale. The style system is implemented as named sets of CSS custom property overrides layered on top of the base light/dark tokens.
@@ -837,19 +946,66 @@ The application maintains a configurable set of file extensions it recognizes as
 
 </div>
 
-These rules apply in file viewing mode and (by default) in library mode. Library mode may optionally override these rules with its own independent set ([§9.5](#95-extension-rules)).
+These rules apply in file viewing mode and (by default) in the workspace file table. Each workspace may optionally override these rules with its own independent extension whitelist ([§9.6](#96-per-workspace-settings)).
 
 <a name="105-storage-locations" id="105-storage-locations"></a>
 
 ### 10.5. Storage Locations
 
-| Platform | Path |
-|----------|------|
-| Windows | `%LOCALAPPDATA%\shruggie-tech\shruggie-md\` |
-| Linux | `$XDG_CONFIG_HOME/shruggie-md/` (default: `~/.config/shruggie-md/`) |
-| macOS | `~/Library/Application Support/shruggie-md/` |
-| Chrome extension | `chrome.storage.sync` |
-| PWA | IndexedDB (`shruggie-md-config` store) |
+| Platform | Config / Data Path | Database |
+|----------|-------------------|----------|
+| Windows | `%LOCALAPPDATA%\shruggie-tech\shruggie-md\` | `shruggie-md.db` (SQLite) |
+| Linux | `$XDG_CONFIG_HOME/shruggie-md/` (default: `~/.config/shruggie-md/`) | `shruggie-md.db` (SQLite) |
+| macOS | `~/Library/Application Support/shruggie-md/` | `shruggie-md.db` (SQLite) |
+| Chrome extension | Origin-scoped browser storage | IndexedDB `shruggie-md` |
+| PWA | Origin-scoped browser storage | IndexedDB `shruggie-md` |
+
+On desktop, the SQLite database file is created automatically by `tauri-plugin-sql` inside the platform config directory. The app data directory also contains a `workspaces/` subdirectory for internal workspace storage (e.g., `{app_data_dir}/workspaces/Default/`). On Chrome Extension and PWA targets the IndexedDB database is origin-scoped and managed by the browser.
+
+<a name="106-logging" id="106-logging"></a>
+
+### 10.6. Logging
+
+The application maintains a structured log via the `logs` table (SQLite) or `logs` object store (IndexedDB). Each entry records:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | auto-increment | Primary key. |
+| `timestamp` | ISO-8601 string | When the event occurred. |
+| `level` | `"debug"` \| `"info"` \| `"warning"` \| `"error"` | Severity. |
+| `module` | string | Source module (e.g., `"migration"`, `"storage"`). |
+| `message` | string | Human-readable description. |
+| `details` | string \| `null` | Optional JSON-encoded context. |
+
+Entries are **persisted only when** their severity is at or above the configured `advanced.logVerbosity` threshold ([§10.1.1](#1011-general-settings)). In development builds (`import.meta.env.DEV`), all entries are additionally written to the browser console regardless of the threshold setting.
+
+The logger is a module-level singleton initialised during the application boot sequence via `initLogger(storage, verbosity)`. Application code retrieves it via `getLogger()`.
+
+<a name="107-window-state-persistence" id="107-window-state-persistence"></a>
+
+### 10.7. Window State Persistence
+
+<div style="text-align:justify">
+
+On desktop platforms the application persists the main window's geometry between sessions. The following config keys are written on window close and restored on the next launch:
+
+</div>
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `window.width` | number (px) | Outer width of the window. |
+| `window.height` | number (px) | Outer height of the window. |
+| `window.x` | number (px) | Horizontal screen offset. |
+| `window.y` | number (px) | Vertical screen offset. |
+| `window.maximized` | boolean | Whether the window was maximised. |
+
+<div style="text-align:justify">
+
+On restore, the saved position is validated against the set of currently connected monitors (via `availableMonitors()`). If the saved position would place the window entirely off-screen, the application falls back to centering the window on the primary monitor. When the window was maximised at close, the non-maximised dimensions are restored first and then the window is re-maximised, ensuring a sensible size if the user later un-maximises.
+
+</div>
+
+These keys are stored in the config table but are **not** part of the React `Config` type — they are read and written directly by the `useWindowState` hook and are invisible to the Settings UI.
 
 ---
 
@@ -866,7 +1022,7 @@ All desktop targets share the following requirements:
 
 - The system PATH includes a CLI-invocable `shruggie-md` command that launches the application.
 - Preferences are stored in the platform-standard application data location ([§10.5](#105-storage-locations)).
-- Library mode is available.
+- Workspace system is available (internal and external workspaces).
 - File watching (live reload) is available.
 
 **Windows 11** (primary target):
@@ -902,7 +1058,7 @@ Manifest V3 configuration:
 - `action`: browser action popup for URL input and settings access.
 - `storage`: `chrome.storage.sync` for configuration persistence.
 
-The Chrome extension does NOT support library mode or file watching. These features require filesystem access unavailable in the extension context.
+The Chrome extension does NOT support the workspace system or file watching. These features require filesystem access unavailable in the extension context.
 
 <a name="113-progressive-web-app" id="113-progressive-web-app"></a>
 
@@ -910,7 +1066,7 @@ The Chrome extension does NOT support library mode or file watching. These featu
 
 <div style="text-align:justify">
 
-The PWA is a hosted static site that serves the Shruggie Markdown frontend with a service worker for offline capability and a web app manifest for installability. The PWA supports markdown viewing, editing, and conversion. It does not support library mode or file watching.
+The PWA is a hosted static site that serves the Shruggie Markdown frontend with a service worker for offline capability and a web app manifest for installability. The PWA supports markdown viewing, editing, and conversion. It does not support the workspace system or file watching.
 
 </div>
 
@@ -933,7 +1089,7 @@ shruggie-md/
 │   ├── components/          # React UI components
 │   │   ├── Editor/          # CodeMirror editor pane
 │   │   ├── Preview/         # Markdown preview pane
-│   │   ├── Library/         # Library table view
+│   │   ├── Workspaces/       # Workspace file table view
 │   │   ├── Settings/        # Settings panel
 │   │   ├── Toolbar/         # Top toolbar
 │   │   └── common/          # Shared UI primitives (Button, Input, Modal, Tooltip)
@@ -942,6 +1098,7 @@ shruggie-md/
 │   ├── platform/            # Platform abstraction (filesystem, storage, capabilities)
 │   ├── styles/              # Global CSS, design tokens, print stylesheet
 │   ├── hooks/               # React hooks (useConfig, useTheme, useFileWatcher, etc.)
+│   ├── storage/             # Storage abstraction (SQLite, IndexedDB, migration)
 │   ├── types/               # TypeScript type definitions
 │   ├── App.tsx              # Root application component
 │   └── main.tsx             # Entry point
@@ -983,8 +1140,7 @@ The following capabilities are deferred from the MVP and may be pursued in futur
 - **Custom themes.** A theme editor allowing users to define their own color token values.
 - **Plugin system.** An extension mechanism for custom markdown-it plugins, custom linter rules, or post-processing hooks.
 - **Export to additional formats.** DOCX, EPUB, or LaTeX export pipelines.
-- **Multiple library roots.** Supporting more than one mounted directory simultaneously.
-- **File tagging and search.** Full-text search across library contents, with optional tag/label metadata.
+- **File tagging and search.** Full-text search across workspace contents, with optional tag/label metadata. The storage schema already includes stub `tags` and `document_tags` tables/stores to support a future tagging and browsing interface.
 - **Vim/Emacs keybindings.** Alternative keybinding modes in the CodeMirror editor.
 
 ---

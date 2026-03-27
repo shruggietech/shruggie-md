@@ -123,4 +123,16 @@ export class ChromeAdapter implements PlatformAdapter {
       hasCliArgs: false,
     };
   }
+
+  async getAppDataDir(): Promise<string> {
+    return "";
+  }
+
+  async createDirectory(_path: string): Promise<void> {
+    // No-op in Chrome extension environment
+  }
+
+  async removeDirectory(_path: string): Promise<void> {
+    // No-op in Chrome extension environment
+  }
 }
