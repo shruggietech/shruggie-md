@@ -50,10 +50,42 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 ### Prerequisites
 
-- Node.js 22+
-- pnpm 9+
-- Rust stable (for desktop builds)
-- ImageMagick (for icon generation)
+All platforms:
+
+| Dependency | Minimum Version | Purpose |
+|------------|-----------------|---------|
+| [Node.js](https://nodejs.org/) | 22+ | Frontend build toolchain |
+| [pnpm](https://pnpm.io/) | 9+ | Package manager (see `packageManager` in `package.json`) |
+| [Rust](https://www.rust-lang.org/tools/install) | 1.77.2+ (stable) | Tauri desktop backend |
+| [ImageMagick](https://imagemagick.org/) | 7+ | Icon generation (`scripts/generate-icons`) |
+
+Windows (for desktop installer builds):
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| [WiX Toolset v3](https://wixtoolset.org/docs/wix3/) | 3.14+ | MSI installer bundling |
+| [NSIS](https://nsis.sourceforge.io/) | 3.x | NSIS installer bundling |
+| [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) | 2022+ | Rust compilation (MSVC linker, Windows SDK) |
+| [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) | Evergreen | Runtime for the Tauri webview (bundled on Windows 11, may need install on Windows 10) |
+
+macOS (for desktop builds):
+
+| Dependency | Purpose |
+|------------|---------|
+| Xcode Command Line Tools | C/C++ toolchain and macOS SDK |
+
+Linux (for desktop builds):
+
+| Dependency | Purpose |
+|------------|---------|
+| `build-essential` | C/C++ compiler toolchain |
+| `libwebkit2gtk-4.1-dev` | WebView backend |
+| `libgtk-3-dev` | GTK windowing |
+| `libayatana-appindicator3-dev` | System tray support |
+| `librsvg2-dev` | SVG icon rendering |
+| `libssl-dev` | TLS support |
+
+> **Note:** On Windows, `pnpm tauri:build` produces a standalone `.exe` without WiX or NSIS installed, but the MSI and NSIS installers will fail to bundle. Install both if you need to produce release installers.
 
 ### Quick Start
 
@@ -104,6 +136,49 @@ See [`shruggie-md-spec.md`](shruggie-md-spec.md) for the full technical specific
 ## License
 
 [Apache-2.0](LICENSE)
+
+## Contributors
+
+Contributions are welcome! Before getting started, make sure you have the full set of [development prerequisites](#prerequisites) installed for your platform. See [RELEASING.md](RELEASING.md) for the release process.
+
+### Setting Up a Dev Environment (Windows)
+
+```powershell
+# 1. Install Rust via rustup (https://rustup.rs/)
+# 2. Install Node.js 22+ and pnpm 9+
+# 3. Install WiX v3 and NSIS (for installer builds)
+# 4. Clone and install
+git clone https://github.com/shruggietech/shruggie-md.git
+cd shruggie-md
+pnpm install
+
+# 5. Run in development mode (web only)
+pnpm run dev
+
+# 6. Run in development mode (desktop / Tauri)
+pnpm tauri:dev
+
+# 7. Build release binaries
+pnpm tauri:build
+```
+
+### Setting Up a Dev Environment (Linux / macOS)
+
+```bash
+# 1. Install Rust via rustup (https://rustup.rs/)
+# 2. Install platform dependencies (see Prerequisites table above)
+# 3. Clone and install
+git clone https://github.com/shruggietech/shruggie-md.git
+cd shruggie-md
+pnpm install
+
+# 4. Run in development mode
+pnpm run dev        # web only
+pnpm tauri:dev      # desktop
+
+# 5. Build release binaries
+pnpm tauri:build
+```
 
 ## Author
 

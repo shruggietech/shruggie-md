@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **README Prerequisites overhaul**: expanded Development > Prerequisites from a brief bullet list to comprehensive per-platform dependency tables covering Windows (WiX v3, NSIS, MSVC Build Tools, WebView2), macOS (Xcode CLT), and Linux (`libwebkit2gtk-4.1-dev`, GTK, etc.) requirements for desktop builds.
+- **README Contributors section**: added new Contributors section with step-by-step dev environment setup guides for Windows (PowerShell) and Linux/macOS (Bash), linking to the Prerequisites tables and RELEASING.md.
+
+### Fixed
+
+- **Cargo.lock regenerated**: lock file updated to include resolved dependency tree for `tauri-plugin-sql` SQLite feature and transitive dependencies added in v0.3.0.
+
+## [Unreleased — v0.3.0 Milestone]
+
 ### Added
 
 - **Edit Only mode** (`Ctrl+4`): full-screen editor without preview pane, for focused writing.
