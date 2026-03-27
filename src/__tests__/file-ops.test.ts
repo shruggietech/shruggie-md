@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { ThemeProvider } from "../hooks";
-import { UrlInput } from "../components/Toolbar/UrlInput";
 import { Toolbar } from "../components/Toolbar";
 import type { ToolbarProps } from "../components/Toolbar";
 
@@ -223,77 +222,7 @@ describe("useHtmlExport", () => {
   });
 });
 
-// ─── 3. useRemoteFetch tests ────────────────────────────────────────────
-describe("useRemoteFetch", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
 
-  it("fetchUrl returns content from a successful response", async () => {
-    const { useRemoteFetch } = await import("../hooks/useRemoteFetch");
-
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "text/plain" }),
-      text: () => Promise.resolve("# Hello from remote"),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const { result } = renderHook(() => useRemoteFetch());
-
-    let fetchResult: { content: string; error: string | null } | undefined;
-    await act(async () => {
-      fetchResult = await result.current.fetchUrl("https://example.com/readme.md");
-    });
-
-    expect(fetchResult!.content).toBe("# Hello from remote");
-    expect(fetchResult!.error).toBeNull();
-
-    vi.unstubAllGlobals();
-  });
-
-  it("fetchUrl returns error for non-text content type", async () => {
-    const { useRemoteFetch } = await import("../hooks/useRemoteFetch");
-
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      headers: new Headers({ "content-type": "image/png" }),
-      text: () => Promise.resolve(""),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const { result } = renderHook(() => useRemoteFetch());
-
-    let fetchResult: { content: string; error: string | null } | undefined;
-    await act(async () => {
-      fetchResult = await result.current.fetchUrl("https://example.com/image.png");
-    });
-
-    expect(fetchResult!.content).toBe("");
-    expect(fetchResult!.error).toContain("Invalid content type");
-
-    vi.unstubAllGlobals();
-  });
-
-  it("fetchUrl returns error for network failure", async () => {
-    const { useRemoteFetch } = await import("../hooks/useRemoteFetch");
-
-    const mockFetch = vi.fn().mockRejectedValue(new Error("Network error"));
-    vi.stubGlobal("fetch", mockFetch);
-
-    const { result } = renderHook(() => useRemoteFetch());
-
-    let fetchResult: { content: string; error: string | null } | undefined;
-    await act(async () => {
-      fetchResult = await result.current.fetchUrl("https://example.com/fail");
-    });
-
-    expect(fetchResult!.content).toBe("");
-    expect(fetchResult!.error).toBe("Network error");
-
-    vi.unstubAllGlobals();
-  });
-});
 
 // ─── 4. usePdfExport tests ──────────────────────────────────────────────
 describe("usePdfExport", () => {
@@ -347,80 +276,7 @@ describe("usePdfExport", () => {
   });
 });
 
-// ─── 5. UrlInput tests ─────────────────────────────────────────────────
-describe("UrlInput", () => {
-  function renderUrlInput(props: Partial<{
-    onSubmit: (url: string) => void;
-    isLoading: boolean;
-    error: string | null;
-  }> = {}) {
-    return render(
-      createElement(ThemeProvider, null,
-        createElement(UrlInput, {
-          onSubmit: props.onSubmit ?? vi.fn(),
-          isLoading: props.isLoading ?? false,
-          error: props.error ?? null,
-        })
-      )
-    );
-  }
-
-  it("renders the globe toggle button", () => {
-    renderUrlInput();
-    // The globe button should be present (it's a button element)
-    const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("shows input field after clicking toggle", () => {
-    renderUrlInput();
-    // Click the globe toggle button
-    const buttons = screen.getAllByRole("button");
-    fireEvent.click(buttons[0]);
-
-    const input = screen.getByTestId("url-input");
-    expect(input).toBeInTheDocument();
-  });
-
-  it("submits URL on Enter", () => {
-    const submitHandler = vi.fn();
-    renderUrlInput({ onSubmit: submitHandler });
-
-    // Open the input
-    const buttons = screen.getAllByRole("button");
-    fireEvent.click(buttons[0]);
-
-    const input = screen.getByTestId("url-input");
-    fireEvent.change(input, { target: { value: "https://example.com/test.md" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-
-    expect(submitHandler).toHaveBeenCalledWith("https://example.com/test.md");
-  });
-
-  it("shows loading state", () => {
-    renderUrlInput({ isLoading: true });
-
-    // Open the input
-    const buttons = screen.getAllByRole("button");
-    fireEvent.click(buttons[0]);
-
-    expect(screen.getByTestId("url-loading")).toBeInTheDocument();
-  });
-
-  it("shows error message", () => {
-    renderUrlInput({ error: "Network error" });
-
-    // Open the input
-    const buttons = screen.getAllByRole("button");
-    fireEvent.click(buttons[0]);
-
-    const errorEl = screen.getByTestId("url-error");
-    expect(errorEl).toBeInTheDocument();
-    expect(errorEl.textContent).toBe("Network error");
-  });
-});
-
-// ─── 6. Updated Toolbar tests ───────────────────────────────────────────
+// ─── 5. Updated Toolbar tests ───────────────────────────────────────────
 describe("Updated Toolbar", () => {
   function renderToolbar(props: Partial<ToolbarProps> = {}) {
     return render(

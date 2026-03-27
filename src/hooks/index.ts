@@ -14,8 +14,6 @@ export { useHtmlExport, generateHtmlDocument } from "./useHtmlExport";
 export type { UseHtmlExportReturn } from "./useHtmlExport";
 export { usePdfExport } from "./usePdfExport";
 export type { UsePdfExportReturn } from "./usePdfExport";
-export { useRemoteFetch } from "./useRemoteFetch";
-export type { UseRemoteFetchReturn, FetchResult } from "./useRemoteFetch";
 export { useWorkspaces } from "./useWorkspaces";
 export type { WorkspaceFile, UseWorkspacesReturn } from "./useWorkspaces";
 export { validateWorkspaceName } from "./useWorkspaces";
