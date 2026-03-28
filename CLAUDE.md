@@ -73,6 +73,7 @@ Previous agent sessions have exhibited these failure patterns. Be aware of them 
 - **Destructive config edits.** Removing or overwriting `tauri.conf.json` configuration blocks (especially `bundle.windows`, `plugins.fs`, `security.csp`) without understanding the downstream effects on installer behavior and application startup.
 - **Unauthorized release actions.** Creating git tags or GitHub releases without explicit instruction from the project owner. Release decisions are always human decisions.
 - **Silent scope expansion.** "Improving" systems adjacent to the sprint scope, or refactoring code not mentioned in the plan. This introduces untested changes and makes it harder to isolate regressions.
+- **Always use `pnpm tauri:dev` or `pnpm tauri:build` to invoke Tauri.** These scripts delete `dist/` before running, preventing stale frontend output from being packaged. Never run `tauri dev`, `tauri build`, or `cargo build` directly.
 
 ## 6. After-Action Report Requirements
 

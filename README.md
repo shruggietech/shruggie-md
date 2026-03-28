@@ -162,6 +162,11 @@ pnpm tauri:dev
 pnpm tauri:build
 ```
 
+> **Build hygiene:** The `tauri:build` and `tauri:dev` scripts automatically
+> delete `dist/` before invoking Tauri. This prevents stale frontend output
+> from being packaged into desktop binaries. Do not bypass these scripts by
+> running `cargo build` or `tauri build` directly from `src-tauri/`.
+
 ### Setting Up a Dev Environment (Linux / macOS)
 
 ```bash
@@ -179,6 +184,11 @@ pnpm tauri:dev      # desktop
 # 5. Build release binaries
 pnpm tauri:build
 ```
+
+> **Build hygiene:** The `tauri:build` and `tauri:dev` scripts automatically
+> delete `dist/` before invoking Tauri. This prevents stale frontend output
+> from being packaged into desktop binaries. Do not bypass these scripts by
+> running `cargo build` or `tauri build` directly from `src-tauri/`.
 
 ## Author
 

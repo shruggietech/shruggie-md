@@ -46,7 +46,31 @@ Edit `CHANGELOG.md`:
 3. Add the comparison link at the bottom: `[X.Y.Z]: https://github.com/shruggietech/shruggie-md/compare/vPREVIOUS...vX.Y.Z`
 4. Update the `[Unreleased]` link to compare against the new tag.
 
-### 4. Commit and Tag
+### 4. Verify Clean Build
+
+Run a full clean build and confirm the desktop application launches correctly:
+
+```bash
+# Clean all build artifacts
+./scripts/clean.sh        # or clean.ps1 on Windows
+
+# Reinstall and rebuild
+pnpm install
+pnpm run build
+
+# Build desktop binaries
+pnpm tauri:build
+
+# Launch and visually verify the application
+pnpm tauri:dev
+```
+
+Do not proceed to commit and tag until the application launches and displays
+the expected UI. If the build succeeds but the application shows stale or
+broken content, delete `dist/` and `src-tauri/target/` and rebuild from
+scratch.
+
+### 5. Commit and Tag
 
 ```bash
 git add -A
@@ -54,7 +78,7 @@ git commit -m "release: vX.Y.Z"
 git tag vX.Y.Z
 ```
 
-### 5. Push
+### 6. Push
 
 ```bash
 git push origin release/vX.Y.Z
@@ -68,7 +92,7 @@ Pushing the tag triggers the GitHub Actions release workflow, which:
 - Creates a GitHub Release with the built artifacts attached.
 - Extracts the changelog entry for the version and uses it as the release notes.
 
-### 6. Merge
+### 7. Merge
 
 After the release workflow completes and artifacts are verified:
 
@@ -78,7 +102,7 @@ git merge release/vX.Y.Z
 git push origin main
 ```
 
-### 7. Post-Release
+### 8. Post-Release
 
 - Verify the GitHub Release page has all expected artifacts.
 - Upload the Chrome extension build (`extension/dist/`) to the Chrome Web Store (manual process).

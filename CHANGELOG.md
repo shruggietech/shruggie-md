@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/clean-dist.js`: lightweight cross-platform helper that deletes only `dist/` before a Tauri build. Used by the `tauri:dev` and `tauri:build` npm scripts to prevent stale frontend output from being packaged into desktop binaries.
+
+### Changed
+
+- `tauri:build` and `tauri:dev` npm scripts now delete `dist/` via `scripts/clean-dist.js` before invoking the Tauri CLI. This ensures no pre-existing `dist/` can be silently embedded in desktop binaries, regardless of how the build is invoked.
+- RELEASING.md now includes a mandatory **Step 4 — Verify Clean Build** before the Commit and Tag step. Existing steps 4–7 renumbered to 5–8.
+
 ## [0.3.0] - 2026-03-27
 
 ### Changed
