@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 # Shruggie-md build artifacts
 dist-node/
 extension/dist/
+
+# Playwright artifacts
+test-results/
+playwright-report/

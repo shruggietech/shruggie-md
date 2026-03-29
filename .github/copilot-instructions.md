@@ -139,3 +139,10 @@ Config values are stored as dotted-path key-value pairs (e.g., `appearance.color
 - Legal name: Shruggie LLC
 - DBA: ShruggieTech
 - Do not refer to the entity as "ShruggieTech LLC".
+
+## Visual Verification
+
+This project has the Playwright MCP server configured in `.vscode/mcp.json`.
+When the server is connected, use `browser_navigate` to open `http://localhost:1420`
+and `browser_take_screenshot` to verify UI changes visually. Do not report UI
+tasks as complete without a screenshot confirming the rendered result.

@@ -1,6 +1,6 @@
 {
   "name": "shruggie-md",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Cross-platform markdown viewer/editor/converter",
@@ -53,6 +53,7 @@
     "remark-preset-lint-recommended": "^7.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.2.2",
     "@tauri-apps/cli": "^2.10.1",
     "@testing-library/jest-dom": "^6.9.1",

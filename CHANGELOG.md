@@ -7,14 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-28
+
 ### Added
 
 - `scripts/clean-dist.js`: lightweight cross-platform helper that deletes only `dist/` before a Tauri build. Used by the `tauri:dev` and `tauri:build` npm scripts to prevent stale frontend output from being packaged into desktop binaries.
+- Playwright MCP server configuration for VS Code Copilot (`.vscode/mcp.json`), enabling agents to visually verify UI changes via browser screenshots.
+- Visual verification standing rule in `CLAUDE.md` and `.github/copilot-instructions.md`.
 
 ### Changed
 
 - `tauri:build` and `tauri:dev` npm scripts now delete `dist/` via `scripts/clean-dist.js` before invoking the Tauri CLI. This ensures no pre-existing `dist/` can be silently embedded in desktop binaries, regardless of how the build is invoked.
 - RELEASING.md now includes a mandatory **Step 4 — Verify Clean Build** before the Commit and Tag step. Existing steps 4–7 renumbered to 5–8.
+
+### Removed
+
+- Orphaned `UrlInput` component (`src/components/Toolbar/UrlInput.tsx`) — superseded by the unified Open dialog in v0.3.0.
+- Orphaned `useRemoteFetch` hook (`src/hooks/useRemoteFetch.ts`) — URL fetching now handled inside `OpenDialog` and CLI arg routing.
 
 ## [0.3.0] - 2026-03-27
 
@@ -139,7 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/shruggietech/shruggie-md/compare/v0.3.0...v0.3.1
 [0.2.0]: https://github.com/shruggietech/shruggie-md/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/shruggietech/shruggie-md/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/shruggietech/shruggie-md/releases/tag/v0.1.0

@@ -83,3 +83,25 @@ When writing an after-action report at the end of a sprint:
 - Every task marked as complete must have been verified by running the application, not just by running typecheck or tests.
 - If a verification step was not performed (e.g., production build was not executed, or a platform was not tested), state that explicitly. Do not mark it as complete or imply it was verified.
 - The "Commit Record" section must reflect actual commits. Run `git log --oneline` and copy the output rather than writing commit messages from memory.
+
+## 7. Visual Verification via Playwright MCP
+
+When operating in VS Code with the Playwright MCP server connected, agents
+MUST use it to visually verify UI changes. The workflow is:
+
+1. Start the dev server: `pnpm tauri:dev` (or `pnpm run dev` for web-only).
+2. Use the Playwright MCP `browser_navigate` tool to open `http://localhost:1420`.
+3. Use `browser_snapshot` or `browser_take_screenshot` to capture the current UI.
+4. Confirm the rendered output matches the expected changes before reporting
+	a task as complete.
+
+Screenshot verification is mandatory for any task that modifies:
+
+- Component layout or structure
+- CSS / styling (including theme tokens)
+- Toolbar, dialog, or panel content
+- View mode behavior
+
+Typecheck and test passage alone are not sufficient evidence that UI changes
+are correct. If the Playwright MCP server is not available, note this in the
+after-action report and flag the UI verification as pending.

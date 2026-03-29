@@ -1,6 +1,6 @@
 [package]
 name = "shruggie-md"
-version = "0.3.0"
+version = "0.3.1"
 description = "Shruggie Markdown - Cross-platform markdown viewer/editor/converter"
 authors = ["William Thompson"]
 license = "Apache-2.0"
