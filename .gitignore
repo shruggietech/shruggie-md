@@ -145,6 +145,7 @@ extension/dist/
 # Playwright artifacts
 test-results/
 playwright-report/
+artifacts/
+.playwright-mcp/
 
-# Tauri build artifacts
-src-tauri/Cargo.lock
+# Tauri build artifacts are ignored via src-tauri/.gitignore (/target)

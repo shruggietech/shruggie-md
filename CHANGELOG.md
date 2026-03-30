@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-03-30
+
+### Fixed
+
+- Native close button (title bar "X") not closing the application on Windows when asynchronous `onCloseRequested` persistence operations stalled during shutdown.
+
+### Changed
+
+- Window geometry persistence now runs incrementally on move and resize with debounce, reducing reliance on close-time state writes.
+- Updated gitignore handling for build/runtime artifacts: `Cargo.lock` is now tracked for the Tauri application while local verification artifacts are ignored.
+
+### Added
+
+- `useWindowState` regression tests covering close-handler timeout behavior and debounced move/resize persistence.
+
 ## [0.3.2] - 2026-03-29
 
 ### Fixed
@@ -174,7 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/shruggietech/shruggie-md/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shruggietech/shruggie-md/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/shruggietech/shruggie-md/compare/v0.3.0...v0.3.1
 [0.2.0]: https://github.com/shruggietech/shruggie-md/compare/v0.1.1...v0.2.0

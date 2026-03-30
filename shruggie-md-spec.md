@@ -995,7 +995,7 @@ The logger is a module-level singleton initialised during the application boot s
 
 <div style="text-align:justify">
 
-On desktop platforms the application persists the main window's geometry between sessions. The following config keys are written on window close and restored on the next launch:
+On desktop platforms the application persists the main window's geometry between sessions. The following config keys are written during runtime window movement/resizing (debounced) and on window close, then restored on the next launch:
 
 </div>
 
@@ -1010,6 +1010,8 @@ On desktop platforms the application persists the main window's geometry between
 <div style="text-align:justify">
 
 On restore, the saved position is validated against the set of currently connected monitors (via `availableMonitors()`). If the saved position would place the window entirely off-screen, the application falls back to centering the window on the primary monitor. When the window was maximised at close, the non-maximised dimensions are restored first and then the window is re-maximised, ensuring a sensible size if the user later un-maximises.
+
+Window geometry writes occur in two paths: (1) debounced incremental saves on move/resize events and (2) a best-effort close-time save guarded by a 2-second timeout. If the close-time save fails or times out, the most recently persisted move/resize geometry is used on next launch.
 
 </div>
 

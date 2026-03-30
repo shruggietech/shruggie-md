@@ -89,32 +89,68 @@ export function useWindowState(
           }
         }
 
-        // ── Save window state on close ───────────────────────────────
-        const unlisten = await win.onCloseRequested(async () => {
+        const saveWindowState = async () => {
           const s = storageRef.current;
           if (!s) return;
 
-          try {
-            const isMax = await win.isMaximized();
-            // Only persist non-maximized dimensions so restore gives the
-            // floating size, not the maximized size.
-            if (!isMax) {
-              const size = await win.outerSize();
-              const pos = await win.outerPosition();
-              await Promise.all([
-                s.setConfigValue("window.width", JSON.stringify(size.width)),
-                s.setConfigValue("window.height", JSON.stringify(size.height)),
-                s.setConfigValue("window.x", JSON.stringify(pos.x)),
-                s.setConfigValue("window.y", JSON.stringify(pos.y)),
-              ]);
-            }
-            await s.setConfigValue("window.maximized", JSON.stringify(isMax));
-          } catch {
-            // Silent failure — don't block close
+          const isMax = await win.isMaximized();
+          if (!isMax) {
+            const size = await win.outerSize();
+            const pos = await win.outerPosition();
+            await Promise.all([
+              s.setConfigValue("window.width", JSON.stringify(size.width)),
+              s.setConfigValue("window.height", JSON.stringify(size.height)),
+              s.setConfigValue("window.x", JSON.stringify(pos.x)),
+              s.setConfigValue("window.y", JSON.stringify(pos.y)),
+            ]);
           }
+          await s.setConfigValue("window.maximized", JSON.stringify(isMax));
+        };
+
+        let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+        const debouncedSave = () => {
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+
+          debounceTimer = setTimeout(async () => {
+            try {
+              await saveWindowState();
+            } catch {
+              // Silent failure — don't break move/resize flow
+            }
+          }, 1000);
+        };
+
+        // ── Save window state on close ───────────────────────────────
+        const unlistenClose = await win.onCloseRequested(async () => {
+          const saveTimeout = new Promise<void>((resolve) => {
+            setTimeout(resolve, 2000);
+          });
+
+          const saveState = (async () => {
+            try {
+              await saveWindowState();
+            } catch {
+              // Silent failure — don't block close
+            }
+          })();
+
+          await Promise.race([saveState, saveTimeout]);
         });
 
-        cleanup = unlisten;
+        const unlistenMove = await win.onMoved(debouncedSave);
+        const unlistenResize = await win.onResized(debouncedSave);
+
+        cleanup = () => {
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          unlistenClose();
+          unlistenMove();
+          unlistenResize();
+        };
       } catch {
         // Not on Tauri or API not available — silently skip
       }
