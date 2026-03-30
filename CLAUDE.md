@@ -15,7 +15,7 @@
 
 These rules apply to every agent session regardless of sprint plan content. Sprint plans may add rules but may not override or weaken these.
 
-1. **No release tagging.** Do not create git tags or GitHub releases. That decision is reserved for the project owner after manual smoke testing.
+1. **No release tagging by default.** Do not create git tags or GitHub releases unless the project owner explicitly asks you to perform the full release cut in this session. If the owner explicitly asks to "cut a release", treat tag creation and pushing as part of that request unless they exclude it.
 
 2. **Verify before declaring done.** Every sprint ends with a verification task. Run the application (`pnpm tauri dev` at minimum) and visually confirm that changes work as intended. Typecheck-only and test-only verification is insufficient. If the sprint includes UI changes, you must see them rendered in the running application before reporting completion.
 
@@ -71,7 +71,7 @@ Previous agent sessions have exhibited these failure patterns. Be aware of them 
 - **Typecheck-as-verification.** Declaring UI changes complete because `pnpm run typecheck` and `pnpm run test` pass, without ever launching the application to see the changes rendered. Typecheck proves the code compiles. It does not prove the code works.
 - **Inaccurate after-action reports.** Reporting file paths that do not match actual file locations. Reporting features as "✅ Complete" without having tested them in a running application. Reporting fabricated test counts or metrics.
 - **Destructive config edits.** Removing or overwriting `tauri.conf.json` configuration blocks (especially `bundle.windows`, `plugins.fs`, `security.csp`) without understanding the downstream effects on installer behavior and application startup.
-- **Unauthorized release actions.** Creating git tags or GitHub releases without explicit instruction from the project owner. Release decisions are always human decisions.
+- **Unauthorized release actions.** Creating git tags or GitHub releases without explicit instruction from the project owner. If explicit instruction is present (for example, "cut the release"), complete the full release flow including tag push unless the owner asks to stop short.
 - **Silent scope expansion.** "Improving" systems adjacent to the sprint scope, or refactoring code not mentioned in the plan. This introduces untested changes and makes it harder to isolate regressions.
 - **Always use `pnpm tauri:dev` or `pnpm tauri:build` to invoke Tauri.** These scripts delete `dist/` before running, preventing stale frontend output from being packaged. Never run `tauri dev`, `tauri build`, or `cargo build` directly.
 

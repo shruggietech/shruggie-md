@@ -129,6 +129,11 @@ Config values are stored as dotted-path key-value pairs (e.g., `appearance.color
 - Before building Tauri artifacts, always delete `dist/` and run `pnpm run build` first. Tauri embeds the contents of `dist/` at compile time; stale `dist/` output produces binaries with old frontend code.
 - Version strings must match across four files: `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `extension/manifest.json`. Use the bump-version scripts in `scripts/`.
 
+## Release Intent Handling
+
+- When the user explicitly asks to "cut" or "perform" a release version, treat that as authorization to execute the full release workflow end-to-end, including tag creation and pushing the tag, unless the user explicitly asks to skip those steps.
+- If there is any conflict between conservative defaults and an explicit user release request, prefer the explicit request and proceed with the full release flow.
+
 ## File Encoding
 
 - All source files: UTF-8 without BOM.
