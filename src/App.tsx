@@ -23,6 +23,7 @@ import { SplitView } from "./components/SplitView";
 import { Editor } from "./components/Editor";
 import { Settings } from "./components/Settings";
 import { Workspaces } from "./components/Workspaces";
+import { StatusBar } from "./components/StatusBar";
 import { InstallPrompt } from "./components/common";
 import { getPlatform } from "./platform/platform";
 import type { PlatformAdapter, PlatformCapabilities } from "./platform/platform";
@@ -127,7 +128,7 @@ function AppShell() {
   }, [config.general.editorToolbarExpanded, updateConfig]);
 
   // File operations hooks
-  const { saveFile, saveFileAs, isSaving, lastSaved } = useFileSave(platform, capabilities);
+  const { saveFile, saveFileAs, isSaving } = useFileSave(platform, capabilities);
   const { startWatching, stopWatching, isRefreshing } = useFileWatcher(platform, capabilities);
   const { exportHtml } = useHtmlExport(platform, capabilities);
   const { exportPdf } = usePdfExport();
@@ -137,6 +138,10 @@ function AppShell() {
     files: workspaceFiles,
     isScanning: isWorkspacesScanning,
     scan: scanWorkspace,
+    workspaces,
+    activeWorkspace,
+    setActiveWorkspaceId,
+    createWorkspace,
   } = useWorkspaces(platform, capabilities, storage);
   const [workspacesFilter, setWorkspacesFilter] = useState("");
 
@@ -266,8 +271,17 @@ function AppShell() {
       stopWatching();
     }
 
+    if (result.workspaceId) {
+      setActiveWorkspaceId(result.workspaceId);
+    }
+
     setViewMode("view");
-  }, [storage, startWatching, stopWatching, setViewMode]);
+  }, [storage, startWatching, stopWatching, setViewMode, setActiveWorkspaceId]);
+
+  const handlePickWorkspaceDirectory = useCallback(async () => {
+    if (!platform || !capabilities.hasFilesystem) return null;
+    return platform.openDirectoryDialog();
+  }, [platform, capabilities.hasFilesystem]);
 
   // Save handler
   const handleSave = useCallback(async () => {
@@ -393,6 +407,7 @@ function AppShell() {
         activeView={viewMode}
         onViewChange={handleViewChange}
         fileName={fileName}
+        filePath={filePath}
         hasFilesystem={capabilities.hasFilesystem}
         showButtonLabels={config.appearance.showButtonLabels}
         toolbarPanelExpanded={config.general.editorToolbarExpanded}
@@ -404,7 +419,6 @@ function AppShell() {
         hasFilePath={filePath !== null}
         canSave={canSave || canSaveAs}
         isSaving={isSaving}
-        lastSaved={lastSaved}
         onExport={() => setIsExportDialogOpen(true)}
         isRefreshing={isRefreshing}
         onRefreshWorkspaces={scanWorkspace}
@@ -470,9 +484,14 @@ function AppShell() {
           {viewMode === "workspaces" && (
             <Workspaces
               files={workspaceFiles}
+              workspaces={workspaces}
+              activeWorkspaceId={activeWorkspace?.id ?? null}
+              hasFilesystem={capabilities.hasFilesystem}
               onFileSelect={handleWorkspaceFileSelect}
+              onActiveWorkspaceChange={setActiveWorkspaceId}
+              onCreateWorkspace={createWorkspace}
+              onPickExternalDirectory={handlePickWorkspaceDirectory}
               filter={workspacesFilter}
-              onFilterChange={setWorkspacesFilter}
             />
           )}
           {viewMode === "settings" && (
@@ -482,6 +501,8 @@ function AppShell() {
           )}
         </div>
       </main>
+
+      <StatusBar activeEngine={config.engine.activeEngine} />
 
       <InstallPrompt />
 

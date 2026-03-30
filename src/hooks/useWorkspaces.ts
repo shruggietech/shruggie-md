@@ -18,7 +18,7 @@ export interface UseWorkspacesReturn {
   workspaces: WorkspaceRecord[];
   activeWorkspace: WorkspaceRecord | null;
   setActiveWorkspaceId: (id: string) => void;
-  createWorkspace: (name: string, type: "internal" | "external", path?: string) => Promise<void>;
+  createWorkspace: (name: string, type: "internal" | "external", path?: string) => Promise<string | null>;
   deleteWorkspace: (id: string) => Promise<void>;
   updateWorkspaceSettings: (id: string, settings: Partial<WorkspaceSettings>) => Promise<void>;
   refreshWorkspaces: () => Promise<void>;
@@ -37,6 +37,13 @@ function parseWorkspaceSettings(ws: WorkspaceRecord): WorkspaceSettings {
     if (typeof raw === "string") return JSON.parse(raw) as WorkspaceSettings;
   } catch { /* ignore */ }
   return { recursive: true, showHidden: false, useIndependentExtensions: false, independentExtensions: [] };
+}
+
+function normalizeWorkspaceBasePath(path: string): string {
+  if (path.endsWith("/") || path.endsWith("\\")) {
+    return path;
+  }
+  return `${path}/`;
 }
 
 // Workspace name validation (OS-safe filenames)
@@ -97,7 +104,7 @@ export function useWorkspaces(
         if (capabilities.hasFilesystem && platform) {
           try {
             const appDir = await platform.getAppDataDir();
-            defaultPath = `${appDir}/workspaces/Default`;
+            defaultPath = `${normalizeWorkspaceBasePath(appDir)}workspaces/Default`;
             // Ensure directory exists
             try { await platform.createDirectory(defaultPath); } catch { /* may already exist */ }
           } catch {
@@ -147,9 +154,12 @@ export function useWorkspaces(
     setError(null);
 
     const wsSettings = parseWorkspaceSettings(activeWorkspace);
-    const activeExtensions = wsSettings.useIndependentExtensions && wsSettings.independentExtensions.length > 0
+    const activeExtensions = (wsSettings.useIndependentExtensions && wsSettings.independentExtensions.length > 0
       ? wsSettings.independentExtensions
-      : globalExtensions;
+      : globalExtensions).map((ext) => {
+        const normalized = ext.trim().toLowerCase();
+        return normalized.startsWith(".") ? normalized : `.${normalized}`;
+      });
 
     try {
       const entries = await adapter.listDirectory(wsPath, wsSettings.recursive);
@@ -191,25 +201,29 @@ export function useWorkspaces(
 
   const createWorkspace = useCallback(async (name: string, type: "internal" | "external", externalPath?: string) => {
     const store = storageRef.current;
-    if (!store) return;
+    if (!store) return null;
 
     let wsPath: string;
     if (type === "external") {
       wsPath = externalPath ?? "";
+      if (!wsPath.trim()) {
+        return null;
+      }
     } else {
       // Internal workspace
       if (capabilities.hasFilesystem && platformRef.current) {
         const appDir = await platformRef.current.getAppDataDir();
-        wsPath = `${appDir}/workspaces/${name}`;
+        wsPath = `${normalizeWorkspaceBasePath(appDir)}workspaces/${name}`;
         try { await platformRef.current.createDirectory(wsPath); } catch { /* may already exist */ }
       } else {
         wsPath = `__internal__/${name}`;
       }
     }
 
+    const workspaceId = crypto.randomUUID();
     const now = new Date().toISOString();
     await store.createWorkspace({
-      id: crypto.randomUUID(),
+      id: workspaceId,
       name,
       type,
       path: wsPath,
@@ -218,6 +232,8 @@ export function useWorkspaces(
       settings: "{}",
     });
     await refreshWorkspaces();
+    setActiveWorkspaceId(workspaceId);
+    return workspaceId;
   }, [capabilities.hasFilesystem, refreshWorkspaces]);
 
   const deleteWorkspace = useCallback(async (id: string) => {

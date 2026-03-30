@@ -1,15 +1,25 @@
 import { useState, useMemo, useCallback } from "react";
+import { Plus } from "lucide-react";
+import { Button, Input, Modal, Select } from "../common";
 import type { WorkspaceFile } from "../../hooks/useWorkspaces";
+import { validateWorkspaceName } from "../../hooks/useWorkspaces";
+import type { WorkspaceRecord } from "../../storage";
 
 export interface WorkspacesProps {
   files: WorkspaceFile[];
+  workspaces: WorkspaceRecord[];
+  activeWorkspaceId: string | null;
+  hasFilesystem: boolean;
   onFileSelect: (path: string) => void;
+  onActiveWorkspaceChange: (id: string) => void;
+  onCreateWorkspace: (name: string, type: "internal" | "external", path?: string) => Promise<string | null>;
+  onPickExternalDirectory: () => Promise<string | null>;
   filter: string;
-  onFilterChange: (filter: string) => void;
 }
 
 type SortKey = "title" | "path" | "lastEdited" | "created";
 type SortDirection = "asc" | "desc";
+type WorkspaceType = "internal" | "external";
 
 interface SortSpec {
   key: SortKey;
@@ -61,16 +71,31 @@ function SortArrow({ direction }: { direction: SortDirection }) {
   );
 }
 
-export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
+export function Workspaces({
+  files,
+  workspaces,
+  activeWorkspaceId,
+  hasFilesystem,
+  onFileSelect,
+  onActiveWorkspaceChange,
+  onCreateWorkspace,
+  onPickExternalDirectory,
+  filter,
+}: WorkspacesProps) {
   const [sorts, setSorts] = useState<SortSpec[]>([
     { key: "lastEdited", direction: "desc" },
   ]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceType, setWorkspaceType] = useState<WorkspaceType>("internal");
+  const [externalPath, setExternalPath] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleHeaderClick = useCallback(
     (key: SortKey, shiftKey: boolean) => {
       setSorts((prev) => {
         if (shiftKey) {
-          // Shift-click: add as secondary sort or toggle existing
           const existingIndex = prev.findIndex((s) => s.key === key);
           if (existingIndex >= 0) {
             const updated = [...prev];
@@ -83,7 +108,6 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
           return [...prev, { key, direction: key === "lastEdited" || key === "created" ? "desc" : "asc" }];
         }
 
-        // Regular click: set as sole sort, or toggle direction
         const existing = prev.length === 1 ? prev[0] : null;
         if (existing && existing.key === key) {
           return [{ key, direction: existing.direction === "asc" ? "desc" : "asc" }];
@@ -97,7 +121,6 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
   const filteredAndSorted = useMemo(() => {
     let result = files;
 
-    // Filter
     if (filter.trim()) {
       const lowerFilter = filter.toLowerCase();
       result = result.filter(
@@ -107,7 +130,6 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
       );
     }
 
-    // Sort
     result = [...result].sort((a, b) => {
       for (const spec of sorts) {
         const cmp = compareFn(a, b, spec.key, spec.direction);
@@ -122,6 +144,64 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
   const getSortSpec = (key: SortKey): SortSpec | undefined =>
     sorts.find((s) => s.key === key);
 
+  const resetCreateModal = () => {
+    setWorkspaceName("");
+    setWorkspaceType("internal");
+    setExternalPath("");
+    setCreateError(null);
+    setIsCreating(false);
+  };
+
+  const handleOpenCreate = () => {
+    resetCreateModal();
+    setIsCreateOpen(true);
+  };
+
+  const handleBrowseExternal = async () => {
+    const path = await onPickExternalDirectory();
+    if (path) {
+      setExternalPath(path);
+      setCreateError(null);
+    }
+  };
+
+  const handleCreateWorkspace = async () => {
+    const nameError = validateWorkspaceName(workspaceName);
+    if (nameError) {
+      setCreateError(nameError);
+      return;
+    }
+
+    const name = workspaceName.trim();
+    const exists = workspaces.some((ws) => ws.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      setCreateError("A workspace with this name already exists.");
+      return;
+    }
+
+    if (workspaceType === "external" && !externalPath.trim()) {
+      setCreateError("Select a folder for the external workspace.");
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError(null);
+
+    try {
+      const id = await onCreateWorkspace(name, workspaceType, externalPath.trim() || undefined);
+      if (!id) {
+        setCreateError("Failed to create workspace.");
+        return;
+      }
+      setIsCreateOpen(false);
+      resetCreateModal();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create workspace.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div
       data-testid="workspaces-panel"
@@ -134,6 +214,37 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
         fontSize: "var(--font-size-sm)",
       }}
     >
+      <div
+        data-testid="workspaces-management-bar"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "var(--space-3)",
+          padding: "var(--space-3)",
+          borderBottom: "1px solid var(--color-border-subtle)",
+          backgroundColor: "var(--color-bg-secondary)",
+        }}
+      >
+        <div style={{ minWidth: 220, maxWidth: 360, width: "100%" }}>
+          <Select
+            value={activeWorkspaceId ?? ""}
+            onChange={onActiveWorkspaceChange}
+            options={workspaces.map((workspace) => ({
+              value: workspace.id,
+              label: workspace.name,
+            }))}
+          />
+        </div>
+        <Button
+          icon={Plus}
+          label="New Workspace"
+          showLabel={true}
+          tooltip="Create a new workspace"
+          onClick={handleOpenCreate}
+        />
+      </div>
+
       <table
         data-testid="workspaces-table"
         role="grid"
@@ -282,6 +393,72 @@ export function Workspaces({ files, onFileSelect, filter }: WorkspacesProps) {
           )}
         </tbody>
       </table>
+
+      <Modal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Create Workspace"
+      >
+        <div data-testid="workspace-create-modal" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Workspace name</span>
+            <Input
+              value={workspaceName}
+              onChange={(e) => {
+                setWorkspaceName(e.target.value);
+                setCreateError(null);
+              }}
+              placeholder="My Workspace"
+            />
+          </label>
+
+          <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Type</span>
+            <Select
+              value={workspaceType}
+              onChange={(value) => {
+                setWorkspaceType(value as WorkspaceType);
+                setCreateError(null);
+              }}
+              options={[
+                { value: "internal", label: "Internal" },
+                { value: "external", label: "External" },
+              ]}
+            />
+          </label>
+
+          {workspaceType === "external" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+                <Input
+                  value={externalPath}
+                  onChange={(e) => setExternalPath(e.target.value)}
+                  placeholder="Choose a directory"
+                />
+                <Button
+                  onClick={handleBrowseExternal}
+                  disabled={!hasFilesystem}
+                >
+                  Browse...
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {createError && (
+            <div data-testid="workspace-create-error" style={{ color: "var(--color-error)", fontSize: "var(--font-size-sm)" }}>
+              {createError}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+            <Button onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button variant="accent" onClick={handleCreateWorkspace} disabled={isCreating}>
+              {isCreating ? "Creating..." : "Create"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act, renderHook } from "@testing-library/react";
 import { ThemeProvider } from "../hooks";
 import { Toolbar } from "../components/Toolbar";
+import { StatusBar } from "../components/StatusBar";
 import { Preview } from "../components/Preview";
 import { useViewMode } from "../hooks/useViewMode";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -120,7 +121,7 @@ function renderWithTheme(ui: React.ReactNode) {
 
 // ─── Toolbar tests ───────────────────────────────────────────────────────
 describe("Toolbar", () => {
-  it("renders with correct structure (app name, view buttons, file name)", () => {
+  it("renders redesigned toolbar zones and file context", () => {
     renderWithTheme(
       <Toolbar
         activeView="view"
@@ -131,7 +132,9 @@ describe("Toolbar", () => {
     );
 
     expect(screen.getByTestId("toolbar")).toBeInTheDocument();
-    expect(screen.getByTestId("toolbar-app-name").textContent).toBe("Shruggie MD");
+    expect(screen.getByTestId("toolbar-navigation-zone")).toBeInTheDocument();
+    expect(screen.getByTestId("toolbar-context-zone")).toBeInTheDocument();
+    expect(screen.getByTestId("toolbar-actions-zone")).toBeInTheDocument();
     expect(screen.getByTestId("toolbar-view-buttons")).toBeInTheDocument();
     expect(screen.getByTestId("toolbar-filename").textContent).toBe("readme.md");
   });
@@ -165,17 +168,14 @@ describe("Toolbar", () => {
       />,
     );
 
-    // There should be 5 view buttons (view, edit, edit-only, library, settings)
+    // Segmented control now includes only content modes.
     const buttons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    expect(buttons.length).toBe(5);
+    expect(buttons.length).toBe(3);
 
     // Click edit button (second)
     fireEvent.click(buttons[1]);
     expect(handler).toHaveBeenCalledWith("edit");
 
-    // Click settings button (fifth)
-    fireEvent.click(buttons[4]);
-    expect(handler).toHaveBeenCalledWith("settings");
   });
 
   it("library button hidden when hasFilesystem=false", () => {
@@ -188,9 +188,9 @@ describe("Toolbar", () => {
       />,
     );
 
-    // Should have 4 buttons (view, edit, edit-only, settings — no library)
+    // Segmented control is unchanged by filesystem capabilities.
     const buttons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    expect(buttons.length).toBe(4);
+    expect(buttons.length).toBe(3);
   });
 
   it("file name displays correctly", () => {
@@ -334,6 +334,18 @@ describe("Preview", () => {
   });
 });
 
+describe("StatusBar", () => {
+  it("renders engine display name", () => {
+    renderWithTheme(<StatusBar activeEngine="markdown-it" />);
+    expect(screen.getByTestId("status-bar-engine").textContent).toBe("markdown-it (GFM)");
+  });
+
+  it("renders version string", () => {
+    renderWithTheme(<StatusBar activeEngine="marked" />);
+    expect(screen.getByTestId("status-bar-version").textContent).toContain("Shruggie Markdown v");
+  });
+});
+
 // ─── App integration tests ───────────────────────────────────────────────
 describe("App integration", () => {
   it("App renders toolbar", async () => {
@@ -342,7 +354,7 @@ describe("App integration", () => {
       render(<App />);
     });
     expect(screen.getByTestId("toolbar")).toBeInTheDocument();
-    expect(screen.getByTestId("toolbar-app-name").textContent).toBe("Shruggie MD");
+    expect(screen.getByTestId("status-bar")).toBeInTheDocument();
   });
 
   it("default view shows preview area", async () => {
@@ -359,10 +371,7 @@ describe("App integration", () => {
       render(<App />);
     });
 
-    // Click settings button (the last view button since library is hidden with no filesystem)
-    const viewButtons = screen.getByTestId("toolbar-view-buttons").querySelectorAll("button");
-    // Without filesystem: view, edit, edit-only, settings (4 buttons)
-    const settingsButton = viewButtons[viewButtons.length - 1];
+    const settingsButton = screen.getByRole("button", { name: "Settings (Ctrl+,)" });
 
     await act(async () => {
       fireEvent.click(settingsButton);

@@ -7,6 +7,13 @@ import { validateWorkspaceName } from "@/hooks/useWorkspaces";
 
 type SourceTab = "file" | "url";
 
+function normalizeWorkspaceBasePath(path: string): string {
+  if (path.endsWith("/") || path.endsWith("\\")) {
+    return path;
+  }
+  return `${path}/`;
+}
+
 export interface OpenDialogResult {
   content: string;
   fileName: string;
@@ -131,7 +138,8 @@ export function OpenDialog({
       const id = crypto.randomUUID();
       const appDataDir = await platform.getAppDataDir();
       const trimmedName = newWorkspaceName.trim();
-      const wsPath = `${appDataDir}workspaces/${trimmedName}/`;
+      const basePath = normalizeWorkspaceBasePath(appDataDir);
+      const wsPath = `${basePath}workspaces/${trimmedName}`;
       await platform.createDirectory(wsPath);
 
       const ws: WorkspaceRecord = {

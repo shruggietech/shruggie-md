@@ -5,6 +5,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 interface TooltipProps {
   content: string;
@@ -24,9 +25,12 @@ export function Tooltip({ content, children }: TooltipProps) {
     timerRef.current = setTimeout(() => {
       if (triggerRef.current) {
         const rect = triggerRef.current.getBoundingClientRect();
+        const minLeft = 8;
+        const maxLeft = window.innerWidth - 8;
+        const computedLeft = rect.left + rect.width / 2;
         setPosition({
-          top: rect.top - 4,
-          left: rect.left + rect.width / 2,
+          top: rect.top - 6,
+          left: Math.min(Math.max(computedLeft, minLeft), maxLeft),
         });
       }
       setVisible(true);
@@ -57,7 +61,7 @@ export function Tooltip({ content, children }: TooltipProps) {
       style={{ display: "inline-flex" }}
     >
       {children}
-      {visible && (
+      {visible && createPortal(
         <div
           role="tooltip"
           style={{
@@ -79,7 +83,7 @@ export function Tooltip({ content, children }: TooltipProps) {
         >
           {content}
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

@@ -6,6 +6,7 @@ export interface ToolbarProps {
   activeView: ViewMode;
   onViewChange: (view: ViewMode) => void;
   fileName: string | null;
+  filePath?: string | null;
   hasFilesystem: boolean;
   showButtonLabels?: boolean;
   // Pop-down toolbar panel
@@ -19,7 +20,6 @@ export interface ToolbarProps {
   hasFilePath?: boolean;
   canSave?: boolean;
   isSaving?: boolean;
-  lastSaved?: Date | null;
   // Export
   onExport?: () => void;
   // File watcher
@@ -32,41 +32,56 @@ export interface ToolbarProps {
 }
 
 interface ViewButton {
-  mode: ViewMode;
+  mode: "view" | "edit" | "edit-only";
   icon: typeof Eye;
   tooltip: string;
   label: string;
-  requiresFilesystem?: boolean;
 }
 
-const viewButtons: ViewButton[] = [
+const contentModeButtons: ViewButton[] = [
   { mode: "view", icon: Eye, tooltip: "View (Ctrl+1)", label: "View" },
   { mode: "edit", icon: Columns2, tooltip: "Edit (Ctrl+2)", label: "Edit" },
   { mode: "edit-only", icon: SquarePen, tooltip: "Edit Only (Ctrl+4)", label: "Edit Only" },
-  {
-    mode: "workspaces",
-    icon: FolderOpen,
-    tooltip: "Workspaces (Ctrl+3)",
-    label: "Workspaces",
-    requiresFilesystem: true,
-  },
-  { mode: "settings", icon: Settings, tooltip: "Settings (Ctrl+,)", label: "Settings" },
 ];
 
-/**
- * Format a Date as a relative "Saved" message.
- */
-function formatSavedStatus(lastSaved: Date | null): string | null {
-  if (!lastSaved) return null;
-  const diffMs = Date.now() - lastSaved.getTime();
-  if (diffMs < 3000) return "Saved";
-  return null;
+function DestinationButton({
+  active,
+  icon,
+  label,
+  tooltip,
+  showLabel,
+  onClick,
+}: {
+  active: boolean;
+  icon: typeof FolderOpen;
+  label: string;
+  tooltip: string;
+  showLabel: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      style={{
+        borderRadius: "var(--radius-sm)",
+        backgroundColor: active ? "var(--color-bg-active)" : "transparent",
+      }}
+    >
+      <Button
+        icon={icon}
+        tooltip={tooltip}
+        label={label}
+        showLabel={showLabel}
+        onClick={onClick}
+      />
+    </div>
+  );
 }
 
 export function Toolbar({
   activeView,
   onViewChange,
   fileName,
+  filePath = null,
   hasFilesystem,
   showButtonLabels = true,
   toolbarPanelExpanded = false,
@@ -78,7 +93,6 @@ export function Toolbar({
   hasFilePath = false,
   canSave = false,
   isSaving = false,
-  lastSaved = null,
   onExport,
   isRefreshing = false,
   onRefreshWorkspaces,
@@ -86,9 +100,11 @@ export function Toolbar({
   onWorkspacesFilterChange,
   isWorkspacesScanning = false,
 }: ToolbarProps) {
-  const savedStatus = formatSavedStatus(lastSaved);
   const isWorkspacesView = activeView === "workspaces";
-  const showToolbarChevron = onToggleToolbarPanel && activeView !== "workspaces" && activeView !== "settings";
+  const isSettingsView = activeView === "settings";
+  const isDocumentView = !isWorkspacesView && !isSettingsView;
+  const showToolbarChevron = onToggleToolbarPanel && isDocumentView;
+  const fullFileTitle = filePath ?? fileName ?? "";
 
   return (
     <header
@@ -99,7 +115,7 @@ export function Toolbar({
         maxHeight: 40,
         display: "flex",
         alignItems: "center",
-        gap: "var(--space-2)",
+        gap: "var(--space-4)",
         padding: "0 var(--space-3)",
         backgroundColor: isRefreshing
           ? "var(--color-accent-subtle)"
@@ -110,70 +126,76 @@ export function Toolbar({
         transition: "background-color 200ms ease-out",
       }}
     >
-      {/* App name */}
-      <span
-        data-testid="toolbar-app-name"
-        style={{
-          fontWeight: 600,
-          color: "var(--color-text-secondary)",
-          whiteSpace: "nowrap",
-          marginRight: "var(--space-2)",
-        }}
+      <div
+        data-testid="toolbar-navigation-zone"
+        style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
       >
-        Shruggie MD
-      </span>
+        <nav
+          data-testid="toolbar-view-buttons"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--color-border-subtle)",
+            backgroundColor: "var(--color-bg-tertiary)",
+            padding: 2,
+            gap: 2,
+          }}
+        >
+          {contentModeButtons.map((btn) => {
+            const isActive = activeView === btn.mode;
+            return (
+              <div
+                key={btn.mode}
+                style={{
+                  borderRadius: "calc(var(--radius-sm) - 2px)",
+                  backgroundColor: isActive ? "var(--color-bg-active)" : "transparent",
+                }}
+              >
+                <Button
+                  icon={btn.icon}
+                  tooltip={btn.tooltip}
+                  label={btn.label}
+                  showLabel={showButtonLabels}
+                  onClick={() => onViewChange(btn.mode)}
+                />
+              </div>
+            );
+          })}
+        </nav>
 
-      {/* View mode toggle buttons */}
-      <nav
-        data-testid="toolbar-view-buttons"
+        {showToolbarChevron && (
+          <Button
+            icon={toolbarPanelExpanded ? ChevronUp : ChevronDown}
+            tooltip={toolbarPanelExpanded ? "Hide quick settings" : "Show quick settings"}
+            label=""
+            showLabel={false}
+            onClick={onToggleToolbarPanel}
+          />
+        )}
+      </div>
+
+      <div
+        data-testid="toolbar-context-zone"
         style={{
+          flex: 1,
+          minWidth: 0,
           display: "flex",
-          gap: "var(--space-1)",
+          justifyContent: "center",
           alignItems: "center",
         }}
       >
-        {viewButtons.map((btn) => {
-          if (btn.requiresFilesystem && !hasFilesystem) return null;
-
-          const isActive = activeView === btn.mode;
-
-          return (
-            <div
-              key={btn.mode}
-              style={{
-                borderRadius: "var(--radius-sm)",
-                backgroundColor: isActive
-                  ? "var(--color-bg-active)"
-                  : "transparent",
-              }}
-            >
-              <Button
-                icon={btn.icon}
-                tooltip={btn.tooltip}
-                label={btn.label}
-                showLabel={showButtonLabels}
-                onClick={() => onViewChange(btn.mode)}
-              />
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* Pop-down toolbar chevron */}
-      {showToolbarChevron && (
-        <Button
-          icon={toolbarPanelExpanded ? ChevronUp : ChevronDown}
-          tooltip={toolbarPanelExpanded ? "Hide quick settings" : "Show quick settings"}
-          label=""
-          showLabel={false}
-          onClick={onToggleToolbarPanel}
-        />
-      )}
-
-      {isWorkspacesView ? (
-        <>
-          {/* Workspace-specific controls */}
-          <div data-testid="toolbar-workspaces-controls" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center", marginLeft: "var(--space-3)", flex: 1, minWidth: 0 }}>
+        {isWorkspacesView && (
+          <div
+            data-testid="toolbar-workspaces-controls"
+            style={{
+              display: "flex",
+              gap: "var(--space-1)",
+              alignItems: "center",
+              width: "100%",
+              maxWidth: 540,
+            }}
+          >
             {onRefreshWorkspaces && (
               <Button
                 icon={RefreshCw}
@@ -192,7 +214,7 @@ export function Toolbar({
                   alignItems: "center",
                   gap: "var(--space-1)",
                   flex: 1,
-                  maxWidth: 300,
+                  minWidth: 0,
                 }}
               >
                 <Search size={14} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
@@ -224,38 +246,49 @@ export function Toolbar({
                 />
               </div>
             )}
-          </div>
-
-          {/* Workspace status */}
-          <div data-testid="toolbar-status" style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
             {isWorkspacesScanning && (
               <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-xs)" }}>
                 Scanning...
               </span>
             )}
           </div>
-        </>
-      ) : (
-        <>
-          {/* File name display */}
+        )}
+
+        {isSettingsView && (
+          <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-sm)" }}>
+            Settings
+          </span>
+        )}
+
+        {isDocumentView && (
           <span
             data-testid="toolbar-filename"
+            title={fullFileTitle || undefined}
             style={{
-              marginLeft: "var(--space-3)",
               color: fileName
                 ? "var(--color-text-primary)"
-                : "var(--color-text-secondary)",
+                : "var(--color-text-tertiary)",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
-              flex: 1,
-              minWidth: 0,
+              textAlign: "center",
+              width: "100%",
             }}
           >
             {fileName ?? "No file"}
           </span>
+        )}
+      </div>
 
-          {/* Action buttons */}
+      <div
+        data-testid="toolbar-actions-zone"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-2)",
+        }}
+      >
+        {isDocumentView && (
           <div data-testid="toolbar-actions" style={{ display: "flex", gap: "var(--space-1)", alignItems: "center" }}>
             {onOpen && (
               <Button
@@ -282,6 +315,7 @@ export function Toolbar({
                 onSaveAs={onSaveAs ?? (() => {})}
                 disabled={!canSave || isSaving}
                 isSaving={isSaving}
+                showLabel={showButtonLabels}
               />
             )}
             {onExport && (
@@ -294,33 +328,41 @@ export function Toolbar({
               />
             )}
           </div>
+        )}
 
-          {/* Status area */}
-          <div data-testid="toolbar-status" style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            {isSaving && (
-              <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-xs)" }}>
-                Saving...
-              </span>
-            )}
-            {savedStatus && !isSaving && (
-              <span
-                data-testid="toolbar-saved-status"
-                style={{ color: "var(--color-success)", fontSize: "var(--font-size-xs)" }}
-              >
-                {savedStatus}
-              </span>
-            )}
-            {isRefreshing && (
-              <span
-                data-testid="toolbar-refresh-indicator"
-                style={{ color: "var(--color-accent)", fontSize: "var(--font-size-xs)" }}
-              >
-                Refreshed
-              </span>
-            )}
-          </div>
-        </>
-      )}
+        {isDocumentView && (
+          <div
+            data-testid="toolbar-actions-separator"
+            style={{
+              width: 1,
+              height: 20,
+              backgroundColor: "var(--color-border-subtle)",
+              margin: "0 var(--space-1)",
+            }}
+          />
+        )}
+
+        <div data-testid="toolbar-destinations" style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
+          {hasFilesystem && (
+            <DestinationButton
+              active={isWorkspacesView}
+              icon={FolderOpen}
+              tooltip="Workspaces (Ctrl+3)"
+              label="Workspaces"
+              showLabel={showButtonLabels}
+              onClick={() => onViewChange("workspaces")}
+            />
+          )}
+          <DestinationButton
+            active={isSettingsView}
+            icon={Settings}
+            tooltip="Settings (Ctrl+,)"
+            label="Settings"
+            showLabel={showButtonLabels}
+            onClick={() => onViewChange("settings")}
+          />
+        </div>
+      </div>
     </header>
   );
 }

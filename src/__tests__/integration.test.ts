@@ -520,9 +520,24 @@ describe("Component accessibility", () => {
         files: [
           { title: "test.md", path: "/test.md", lastEdited: new Date().toISOString(), created: new Date().toISOString() },
         ],
+        workspaces: [
+          {
+            id: "ws-1",
+            name: "Default",
+            type: "internal",
+            path: "__internal__/Default",
+            is_default: true,
+            settings: "{}",
+            created_at: new Date().toISOString(),
+          },
+        ],
+        activeWorkspaceId: "ws-1",
+        hasFilesystem: true,
         onFileSelect: () => {},
+        onActiveWorkspaceChange: () => {},
+        onCreateWorkspace: async () => "ws-2",
+        onPickExternalDirectory: async () => null,
         filter: "",
-        onFilterChange: () => {},
       }),
     ));
 
@@ -538,9 +553,24 @@ describe("Component accessibility", () => {
     render(createElement(ThemeProvider, null,
       createElement(Workspaces, {
         files: [],
+        workspaces: [
+          {
+            id: "ws-1",
+            name: "Default",
+            type: "internal",
+            path: "__internal__/Default",
+            is_default: true,
+            settings: "{}",
+            created_at: new Date().toISOString(),
+          },
+        ],
+        activeWorkspaceId: "ws-1",
+        hasFilesystem: true,
         onFileSelect: () => {},
+        onActiveWorkspaceChange: () => {},
+        onCreateWorkspace: async () => "ws-2",
+        onPickExternalDirectory: async () => null,
         filter: "",
-        onFilterChange: () => {},
       }),
     ));
 
@@ -560,9 +590,24 @@ describe("Component accessibility", () => {
         files: [
           { title: "test.md", path: "/test.md", lastEdited: new Date().toISOString(), created: new Date().toISOString() },
         ],
+        workspaces: [
+          {
+            id: "ws-1",
+            name: "Default",
+            type: "internal",
+            path: "__internal__/Default",
+            is_default: true,
+            settings: "{}",
+            created_at: new Date().toISOString(),
+          },
+        ],
+        activeWorkspaceId: "ws-1",
+        hasFilesystem: true,
         onFileSelect: selectFn,
+        onActiveWorkspaceChange: () => {},
+        onCreateWorkspace: async () => "ws-2",
+        onPickExternalDirectory: async () => null,
         filter: "",
-        onFilterChange: () => {},
       }),
     ));
 

@@ -406,9 +406,13 @@ All spacing values are multiples of a 4px base unit, following an 8pt-grid-align
 
 ### 4.6. Component Styling
 
-**Toolbar.** A single horizontal bar at the top of the viewport. Height: `40px`. Background: `--color-bg-secondary`. Bottom border: `1px solid --color-border-primary`. Contains the view-mode segmented control, file name display, action buttons, and a chevron toggle for the pop-down quick-settings panel. Buttons use icon-only presentation by default, with tooltips on all controls. An optional `showButtonLabels` appearance setting (see [§10.2](#102-theme-and-appearance)) renders a text label alongside each toolbar button icon.
+**Toolbar.** A single horizontal bar at the top of the viewport. Height: `40px`. Background: `--color-bg-secondary`. Bottom border: `1px solid --color-border-primary`. The toolbar is organized into three zones: **Navigation** (left), **Context** (center), and **Actions** (right).
 
-**Mode Switcher.** A segmented control of five buttons (View, Edit, Edit Only, Workspaces, Settings) using icon + label pairs from the Lucide icon set: Eye + "View", Columns2 + "Edit", SquarePen + "Edit Only", FolderOpen + "Workspaces", Settings + "Settings". The active mode is highlighted with `--color-bg-active`. Workspaces is hidden when `hasFilesystem` is false. When `showButtonLabels` is off, text labels hide but icons and layout remain coherent.
+**Navigation zone.** Contains a segmented control for the three content modes (View, Edit, Edit Only), plus the chevron toggle for the pop-down quick-settings panel. The segmented control has `1px solid --color-border-subtle` boundary, `--color-bg-tertiary` background, and 2px inner padding. The active content mode button uses `--color-bg-active`.
+
+**Context zone.** Shows centered document context with ellipsis overflow. In document modes this is the filename (`text-align: center`, `white-space: nowrap`, `overflow: hidden`, `text-overflow: ellipsis`) with a native `title` attribute for full-path hover. In Workspaces mode this region is replaced by workspace controls (refresh + filter input + scanning state). In Settings mode it shows a centered Settings label.
+
+**Actions zone.** Contains file actions (Open, New, Save/Save As SplitButton, Export) followed by a subtle vertical separator (`1px`, `--color-border-subtle`) and destination buttons (Workspaces, Settings). Workspaces and Settings are not part of the segmented content-mode control; they are standalone destination buttons and use `--color-bg-active` when selected.
 
 **Pop-Down Quick-Settings Panel.** A collapsible panel that slides down from the toolbar when the user clicks the chevron (`ChevronDown` / `ChevronUp`) button. Animation: slide down over 150ms ease-out. The panel's visibility state is persisted in `general.editorToolbarExpanded` (default `false`). The panel is hidden when Workspaces or Settings views are active. Content varies by active view mode:
 
@@ -435,7 +439,9 @@ All buttons use `--radius-sm` border radius. Minimum tap target: `32px` square. 
 
 **Modals.** Centered overlay with a backdrop of `rgba(0,0,0,0.5)`. Modal surface: `--color-bg-secondary`, `--radius-md` border radius, `1px solid --color-border-primary`. Max width: `480px`. Content padding: `--space-6`. Entrance animation: fade in + scale from 0.97 to 1.0 over 150ms.
 
-**SplitButton.** A compound button used for Save / Save As. When a file path is established, the button renders as a split: the primary region triggers Save (`Ctrl/Cmd+S`), and a chevron dropdown exposes a "Save As…" menu item (`Ctrl/Cmd+Shift+S`). When no file path is established, the button renders as a plain icon button that triggers Save As directly. Styling follows ghost button conventions.
+**SplitButton.** A compound button used for Save / Save As. When a file path is established, the button renders as a split: the primary region triggers Save (`Ctrl/Cmd+S`), and a chevron dropdown exposes a "Save As…" menu item (`Ctrl/Cmd+Shift+S`). When no file path is established, the button renders as a plain Save As action button. SplitButton respects `appearance.showButtonLabels`: when enabled it renders "Save" / "Save As" text alongside icons.
+
+**StatusBar.** A persistent bar at the bottom of the application window. Height: `24px`. Background: `--color-bg-secondary`. Top border: `1px solid --color-border-primary`. Typography: `--font-size-xs`, `--font-ui`, `--color-text-tertiary`. Left side shows active markdown engine display name. Right side shows `Shruggie Markdown v{version}`.
 
 <a name="47-motion-and-transitions" id="47-motion-and-transitions"></a>
 
@@ -489,7 +495,7 @@ The application has five top-level views, three of which are content modes and t
 | Workspaces | `Ctrl/Cmd+3` | Workspace file management. Desktop only. |
 | Settings | `Ctrl/Cmd+,` | Configuration panel. |
 
-The toolbar displays a segmented mode switcher with icon + label buttons for View, Edit, Edit Only, Workspaces (desktop only), and Settings. The active mode is highlighted with `--color-bg-active`. When `appearance.showButtonLabels` is off, labels are hidden but the icons and segmented control layout remain.
+The toolbar separates content modes from destinations: View, Edit, and Edit Only are grouped in the segmented control, while Workspaces (desktop only) and Settings are standalone destination buttons in the actions zone. Active content mode and active destination each use `--color-bg-active` highlighting in their respective groups.
 
 The initial view mode is platform-aware: desktop (Tauri) defaults to Edit; web, PWA, and Chrome extension default to View. If the user has previously selected a content mode, that choice is persisted in `general.lastViewMode` (valid values: `"view"`, `"edit"`, `"edit-only"`) and restored on next launch. Workspaces and Settings are transient navigation overlays and are never persisted. Legacy config values `"full-view"` and `"split-view"` are silently migrated to `"view"` and `"edit"` respectively.
 
@@ -549,6 +555,7 @@ Settings sections (in order of appearance):
 4. **Markdown Engine** — Engine selection dropdown.
 5. **File Extensions** — Extension whitelist editor.
 6. **Advanced** — Log verbosity setting.
+7. **About** — App name, runtime version, and product attribution.
 
 Per-workspace settings (recursion, hidden files, independent extensions) are managed through the workspace settings modal, not the global Settings view.
 
@@ -757,10 +764,10 @@ Key rendered content styles:
 
 - **Headings.** `h1` through `h6` use `--font-preview` with descending sizes (28px, 22px, 18px, 16px, 15px, 13px). Bottom border on `h1` and `h2` (`1px solid --color-border-subtle`). Margin top: `1.5em`, margin bottom: `0.5em`.
 - **Paragraphs.** `--font-size-preview`, `--line-height-preview`. Margin bottom: `1em`.
-- **Code blocks.** Background: `--color-bg-tertiary`. Padding: `--space-4`. Border radius: `--radius-sm`. Font: `--font-preview-mono`. Overflow: horizontal scroll.
+- **Code blocks.** Background: `--color-bg-tertiary`. Padding: `--space-4`. Border radius: `6px` (GitHub-aligned). Font: `--font-preview-mono`. Overflow: horizontal scroll.
 - **Inline code.** Background: `--color-bg-hover`. Padding: `2px 6px`. Border radius: `3px`.
-- **Blockquotes.** Left border: `3px solid --color-accent-subtle`. Padding left: `--space-4`. Text color: `--color-text-secondary`.
-- **Tables.** Full width. Header row: `--color-bg-secondary` background, `--font-weight-semibold`. Cell padding: `--space-2` vertical, `--space-3` horizontal. Borders: `1px solid --color-border-subtle`.
+- **Blockquotes.** Left border: `4px solid --color-border-primary`. Padding left: `--space-4`. Text color: `--color-text-secondary`.
+- **Tables.** Full width. Header row: `--color-bg-secondary` background, `--font-weight-semibold`. Cell padding: `--space-2` vertical, `--space-3` horizontal. Borders: `1px solid --color-border-primary`. Body rows use alternating backgrounds (`transparent` / `--color-bg-tertiary`) for GitHub-style scanability.
 - **Links.** Color: `--color-accent`. No underline by default; underline on hover.
 - **Images.** Max width: `100%`. Border radius: `--radius-sm`. Centered within the reading column.
 - **Horizontal rules.** `1px solid --color-border-subtle`. Margin: `--space-6` vertical.
@@ -812,7 +819,8 @@ On Chrome Extension and PWA platforms, only internal workspaces are available (n
 
 **Creating a workspace:**
 
-- The user clicks "Add Workspace" from the workspace list panel.
+- Primary entry point: the user clicks "Add Workspace" from the Workspaces view management bar.
+- Secondary convenience entry point: inline creation from the Open dialog workspace selector.
 - Options: Internal (name only) or External (name + directory picker on desktop).
 - Name validation enforces: no empty names, 128-character maximum, no OS-disallowed characters (`< > : " / \ | ? *`, null bytes), no Windows reserved names (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`), no leading/trailing dots.
 - Name uniqueness is enforced (case-insensitive comparison).

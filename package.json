@@ -1,6 +1,6 @@
 {
   "name": "shruggie-md",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "Cross-platform markdown viewer/editor/converter",

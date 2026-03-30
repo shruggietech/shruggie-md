@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { ThemeProvider } from "../hooks";
 import { Workspaces } from "../components/Workspaces";
 import { Toolbar } from "../components/Toolbar";
@@ -116,6 +116,18 @@ const sampleFiles: WorkspaceFile[] = [
   },
 ];
 
+const sampleWorkspaces = [
+  {
+    id: "ws-default",
+    name: "Default",
+    type: "internal" as const,
+    path: "__internal__/Default",
+    is_default: true,
+    settings: "{}",
+    created_at: "2026-01-01T00:00:00.000Z",
+  },
+];
+
 // ═════════════════════════════════════════════════════════════════════════
 // Workspaces table tests
 // ═════════════════════════════════════════════════════════════════════════
@@ -125,9 +137,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -142,9 +159,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -162,9 +184,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -181,9 +208,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -197,9 +229,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -220,9 +257,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter="alph"
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -235,9 +277,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter="/notes/"
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -251,9 +298,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={handler}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -268,9 +320,14 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={[]}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter=""
-        onFilterChange={vi.fn()}
       />,
     );
 
@@ -283,15 +340,55 @@ describe("Workspaces table", () => {
     renderWithTheme(
       <Workspaces
         files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
         onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={vi.fn().mockResolvedValue("ws-new")}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
         filter="zzzzzzz"
-        onFilterChange={vi.fn()}
       />,
     );
 
     expect(screen.getByTestId("workspaces-empty")).toHaveTextContent(
       "No files match the current filter.",
     );
+  });
+
+  it("opens creation modal, validates input, and creates workspace", async () => {
+    const createWorkspace = vi.fn().mockResolvedValue("ws-created");
+
+    renderWithTheme(
+      <Workspaces
+        files={sampleFiles}
+        workspaces={sampleWorkspaces}
+        activeWorkspaceId="ws-default"
+        hasFilesystem={true}
+        onFileSelect={vi.fn()}
+        onActiveWorkspaceChange={vi.fn()}
+        onCreateWorkspace={createWorkspace}
+        onPickExternalDirectory={vi.fn().mockResolvedValue(null)}
+        filter=""
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /new workspace/i }));
+    expect(screen.getByTestId("workspace-create-modal")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    });
+    expect(screen.getByTestId("workspace-create-error")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("My Workspace"), {
+      target: { value: "Docs" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    });
+
+    expect(createWorkspace).toHaveBeenCalledWith("Docs", "internal", undefined);
   });
 });
 

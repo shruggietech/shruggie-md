@@ -145,3 +145,6 @@ extension/dist/
 # Playwright artifacts
 test-results/
 playwright-report/
+
+# Tauri build artifacts
+src-tauri/Cargo.lock

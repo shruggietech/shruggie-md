@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Workspace creation in the Open dialog failing due to malformed internal workspace path construction when app data directory lacked a trailing separator.
+- `SplitButton` (Save / Save As) not rendering text labels when `appearance.showButtonLabels` was enabled.
+- Toolbar tooltip rendering reliability by moving tooltip overlays to a body-level portal to avoid clipping/stacking issues.
+- Settings panel scrollbar positioning by moving overflow scrolling to a full-width outer container so the scrollbar anchors to the right window edge.
+- Workspace file discovery pipeline reliability by hardening extension normalization and using `stat()` directory metadata in the Tauri adapter.
+- Recursive workspace traversal reliability by using stat-derived `isDirectory` values instead of relying solely on `readDir` metadata.
+
+### Changed
+
+- Toolbar redesigned into three zones: Navigation (content mode segmented control + chevron), Context (centered filename/workspace controls), and Actions (file operations + destinations).
+- Content modes (View, Edit, Edit Only) are now visually grouped in a segmented control, while Workspaces and Settings are separate destination buttons.
+- Toolbar brand label removed; attribution moved to Settings > About.
+- Preview styling adjusted toward GitHub-flavored conventions for code blocks, tables, and blockquotes.
+
+### Added
+
+- Bottom status bar showing active markdown engine (left) and app version (right).
+- Settings > About section with app name, runtime version, and developer attribution.
+- Workspaces view management bar with workspace selector and New Workspace modal (Internal/External).
+- Build-time `__APP_VERSION__` constant (with runtime-safe fallback for tests/dev).
+- New/updated test coverage for SplitButton labels, StatusBar rendering, and Workspaces modal behavior.
+
 ## [0.3.1] - 2026-03-28
 
 ### Added

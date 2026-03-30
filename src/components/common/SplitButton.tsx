@@ -10,6 +10,7 @@ interface SplitButtonProps {
   onSaveAs: () => void;
   disabled?: boolean;
   isSaving?: boolean;
+  showLabel?: boolean;
 }
 
 export function SplitButton({
@@ -18,6 +19,7 @@ export function SplitButton({
   onSaveAs,
   disabled = false,
   isSaving = false,
+  showLabel = false,
 }: SplitButtonProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,17 @@ export function SplitButton({
           onMouseLeave={handleLeave}
         >
           <Icon icon={Save} size={16} />
+          <span
+            style={{
+              fontSize: "var(--font-size-xs)",
+              fontFamily: "var(--font-ui)",
+              lineHeight: 1,
+              display: showLabel ? "inline" : "none",
+            }}
+            aria-hidden="true"
+          >
+            Save As
+          </span>
         </button>
       </Tooltip>
     );
@@ -115,6 +128,17 @@ export function SplitButton({
             onMouseLeave={handleLeave}
           >
             <Icon icon={Save} size={16} />
+            <span
+              style={{
+                fontSize: "var(--font-size-xs)",
+                fontFamily: "var(--font-ui)",
+                lineHeight: 1,
+                display: showLabel ? "inline" : "none",
+              }}
+              aria-hidden="true"
+            >
+              Save
+            </span>
           </button>
 
           {/* Divider */}

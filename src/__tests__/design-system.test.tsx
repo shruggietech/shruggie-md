@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider, useTheme } from "../hooks";
-import { Button, Input, Modal, Tooltip, Divider } from "../components/common";
+import { Button, Input, Modal, Tooltip, Divider, SplitButton } from "../components/common";
 
 // Helper to render with ThemeProvider
 function renderWithTheme(ui: React.ReactNode, initialMode?: "light" | "dark" | "system") {
@@ -350,5 +350,33 @@ describe("Divider", () => {
     renderWithTheme(<Divider onResize={() => {}} />);
     const divider = screen.getByTestId("divider");
     expect(divider.style.cursor).toBe("col-resize");
+  });
+});
+
+describe("SplitButton", () => {
+  it("shows Save label when showLabel is true and hasPath is true", () => {
+    renderWithTheme(
+      <SplitButton
+        hasPath={true}
+        onSave={() => {}}
+        onSaveAs={() => {}}
+        showLabel={true}
+      />,
+    );
+
+    expect(screen.getByText("Save")).toBeInTheDocument();
+  });
+
+  it("shows Save As label when showLabel is true and hasPath is false", () => {
+    renderWithTheme(
+      <SplitButton
+        hasPath={false}
+        onSave={() => {}}
+        onSaveAs={() => {}}
+        showLabel={true}
+      />,
+    );
+
+    expect(screen.getByText("Save As")).toBeInTheDocument();
   });
 });

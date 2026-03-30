@@ -98,7 +98,7 @@ export class TauriAdapter implements PlatformAdapter {
         const entryPath = await joinPath(dirPath, entry.name);
         try {
           const entryStats = await stat(entryPath);
-          const isDir = entry.isDirectory ?? false;
+          const isDir = Boolean(entryStats.isDirectory ?? entry.isDirectory);
           results.push({
             name: entry.name,
             path: entryPath,
