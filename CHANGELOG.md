@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Native window close flow now uses explicit close handling (`preventDefault` + timeout-guarded save + `destroy`) to guarantee the Windows title-bar "X" exits reliably even when persistence operations stall.
+
 ## [0.3.3] - 2026-03-30
 
 ### Fixed

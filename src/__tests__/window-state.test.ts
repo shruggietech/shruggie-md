@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useWindowState } from "../hooks/useWindowState";
 import type { StorageAdapter } from "../storage/types";
 
-type CloseHandler = () => Promise<void> | void;
+type CloseHandler = (event: { preventDefault: () => void }) => Promise<void> | void;
 type WindowEventHandler = () => void;
 
 let closeHandler: CloseHandler | null = null;
@@ -15,6 +15,7 @@ const mockWindow = {
   setPosition: vi.fn(async () => {}),
   center: vi.fn(async () => {}),
   maximize: vi.fn(async () => {}),
+  destroy: vi.fn(async () => {}),
   isMaximized: vi.fn(async () => false),
   outerSize: vi.fn(async () => ({ width: 1280, height: 720 })),
   outerPosition: vi.fn(async () => ({ x: 120, y: 80 })),
@@ -86,10 +87,13 @@ describe("useWindowState", () => {
     await flushInit();
     expect(closeHandler).not.toBeNull();
 
-    const closePromise = closeHandler?.();
+    const preventDefault = vi.fn();
+    const closePromise = closeHandler?.({ preventDefault });
 
     await vi.advanceTimersByTimeAsync(2100);
     await expect(closePromise).resolves.toBeUndefined();
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(mockWindow.destroy).toHaveBeenCalledTimes(1);
   });
 
   it("debounces move and resize saves", async () => {

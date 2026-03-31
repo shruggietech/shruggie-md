@@ -124,7 +124,21 @@ export function useWindowState(
         };
 
         // ── Save window state on close ───────────────────────────────
-        const unlistenClose = await win.onCloseRequested(async () => {
+        let isClosing = false;
+
+        const unlistenClose = await win.onCloseRequested(async (event) => {
+          if (isClosing) {
+            return;
+          }
+
+          isClosing = true;
+          event.preventDefault();
+
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+            debounceTimer = undefined;
+          }
+
           const saveTimeout = new Promise<void>((resolve) => {
             setTimeout(resolve, 2000);
           });
@@ -138,6 +152,12 @@ export function useWindowState(
           })();
 
           await Promise.race([saveState, saveTimeout]);
+
+          try {
+            await win.destroy();
+          } catch {
+            // Silent failure — if destroy fails, avoid crashing the close flow
+          }
         });
 
         const unlistenMove = await win.onMoved(debouncedSave);
