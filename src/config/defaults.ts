@@ -36,6 +36,8 @@ export const defaultConfig: Config = {
   general: {
     lastViewMode: null,
     editorToolbarExpanded: false,
+    lastDocumentPath: null,
+    lastDocumentSource: null,
   },
   advanced: {
     logVerbosity: "warning",

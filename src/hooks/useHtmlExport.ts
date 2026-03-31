@@ -170,7 +170,7 @@ function buildInlineStyles(): string {
 /**
  * Generates a self-contained HTML document string from markdown source.
  */
-export function generateHtmlDocument(source: string, engineId: string): string {
+export function generateHtmlDocument(source: string, engineId: string, title?: string): string {
   const renderedHtml = renderMarkdown(source, engineId);
   const tokenVars = resolveThemeTokens();
   const inlineStyles = buildInlineStyles();
@@ -180,7 +180,7 @@ export function generateHtmlDocument(source: string, engineId: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shruggie MD Export</title>
+  <title>${title ?? "Shruggie MD Export"}</title>
   <style>
     :root {
 ${tokenVars}

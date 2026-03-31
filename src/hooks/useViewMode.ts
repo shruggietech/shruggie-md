@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 
-export type ViewMode = "view" | "edit" | "edit-only" | "workspaces" | "settings";
+export type ViewMode = "view" | "edit" | "edit-only" | "workspaces" | "settings" | "help";
 
 export interface UseViewModeReturn {
   viewMode: ViewMode;

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-03-31
+
+### Fixed
+
+- PDF export now pre-fills the save dialog with the current document filename (or "Untitled") instead of leaving the filename field empty.
+- PDF export no longer shows a duplicate print/save dialog after the first save completes.
+- Workspaces empty state message updated from "No files found. Add a workspace to get started." to "No files found. Create a new file or add a workspace to get started."
+- Workspace file list now correctly populates after application restart when navigating to the Workspaces view and clicking Refresh.
+- Chrome Extension dark mode now correctly applies background color. CSS custom property selectors changed from `[data-theme]` to `:host([data-theme])` on the shadow host element.
+
+### Changed
+
+- View mode persistence now covers all five primary views (view, edit, edit-only, workspaces, settings) instead of only the three content modes.
+- About section removed from Settings panel and relocated to a standalone About modal accessible via the Info toolbar dropdown.
+- Welcome document redesigned with branding, feature overview, keyboard shortcuts, and links to the GitHub repository.
+
+### Added
+
+- Document state persistence: the application remembers the last-opened local file and restores it on relaunch. New config keys: `general.lastDocumentPath`, `general.lastDocumentSource`.
+- New File button added to the Workspaces empty state area.
+- Per-workspace settings modal restored with toggles for recursive traversal, show hidden files, independent extension rules, and extension whitelist.
+- Info toolbar button with dropdown menu containing About and Help items.
+- About modal displaying app name, version, platform, attribution, GitHub link, and license.
+- Help view rendering the welcome document content in read-only Preview mode.
+- Welcome document content extracted to shared constant (`src/constants/welcomeContent.ts`).
+
 ## [0.3.5] - 2026-03-30
 
 ### Fixed

@@ -244,7 +244,7 @@ describe("Settings UI", () => {
     hasCliArgs: true,
   };
 
-  it("renders 7 sections when no filesystem", async () => {
+  it("renders 6 sections when no filesystem", async () => {
     await act(async () => {
       renderWithProviders(
         <Settings capabilities={noFsCaps} />,
@@ -257,10 +257,9 @@ describe("Settings UI", () => {
     expect(screen.getByTestId("settings-engine")).toBeInTheDocument();
     expect(screen.getByTestId("settings-extensions")).toBeInTheDocument();
     expect(screen.getByTestId("settings-advanced")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-about")).toBeInTheDocument();
   });
 
-  it("renders 7 sections when filesystem is available", async () => {
+  it("renders 6 sections when filesystem is available", async () => {
     await act(async () => {
       renderWithProviders(
         <Settings capabilities={fsCaps} />,
@@ -273,7 +272,6 @@ describe("Settings UI", () => {
     expect(screen.getByTestId("settings-engine")).toBeInTheDocument();
     expect(screen.getByTestId("settings-extensions")).toBeInTheDocument();
     expect(screen.getByTestId("settings-advanced")).toBeInTheDocument();
-    expect(screen.getByTestId("settings-about")).toBeInTheDocument();
   });
 
   it("appearance section shows color mode toggle buttons", async () => {

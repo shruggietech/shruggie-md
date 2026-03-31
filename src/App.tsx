@@ -24,44 +24,16 @@ import { Editor } from "./components/Editor";
 import { Settings } from "./components/Settings";
 import { Workspaces } from "./components/Workspaces";
 import { StatusBar } from "./components/StatusBar";
+import { AboutModal } from "./components/AboutModal";
 import { InstallPrompt } from "./components/common";
 import { getPlatform } from "./platform/platform";
 import type { PlatformAdapter, PlatformCapabilities } from "./platform/platform";
 import { ConfigProvider, useConfig } from "./config";
 import { getStorage, initLogger, migrateConfig, StorageContext, useStorage } from "./storage";
 import type { StorageAdapter } from "./storage";
+import { welcomeContent } from "./constants/welcomeContent";
 
-const defaultContent = `# Welcome to Shruggie MD
-
-Start by opening a file (**Ctrl+O** / **Cmd+O**) or just enjoy this preview.
-
-## Features
-
-- **View** — rendered markdown preview
-- **Edit** — editor + preview side by side
-- **Edit Only** — full-screen editor
-- **Workspaces** — browse your markdown files
-- **Settings** — configure everything
-
-### Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| Ctrl/Cmd + 1 | View |
-| Ctrl/Cmd + 2 | Edit |
-| Ctrl/Cmd + 3 | Workspaces |
-| Ctrl/Cmd + 4 | Edit Only |
-| Ctrl/Cmd + , | Settings |
-| Ctrl/Cmd + O | Open file |
-| Ctrl/Cmd + S | Save |
-| Ctrl/Cmd + Shift + E | Export |
-| Ctrl/Cmd + Shift + H | Export HTML |
-| Ctrl/Cmd + Shift + P | Export PDF |
-
----
-
-> ¯\\\\_(ツ)_/¯
-`;
+const defaultContent = welcomeContent;
 
 function AppShell() {
   const { config, updateConfig } = useConfig();
@@ -103,6 +75,7 @@ function AppShell() {
   const [isRemote, setIsRemote] = useState(false);
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
 
   // Apply live CSS custom property updates from config
@@ -114,10 +87,11 @@ function AppShell() {
     previousView.current = viewMode;
   }, [viewMode]);
 
-  // Persist view mode when user switches to view, edit, or edit-only
+  // Persist view mode when user switches views
+  // All five modes are persisted except transient views (about, help)
   const handleViewChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    if (mode === "view" || mode === "edit" || mode === "edit-only") {
+    if (mode === "view" || mode === "edit" || mode === "edit-only" || mode === "workspaces" || mode === "settings") {
       updateConfig("general", { lastViewMode: mode });
     }
   }, [setViewMode, updateConfig]);
@@ -126,6 +100,14 @@ function AppShell() {
   const handleToggleToolbarPanel = useCallback(() => {
     updateConfig("general", { editorToolbarExpanded: !config.general.editorToolbarExpanded });
   }, [config.general.editorToolbarExpanded, updateConfig]);
+
+  // Persist last-opened document path/source to config
+  const persistDocumentRef = useCallback((docPath: string | null, source: "local" | "remote" | null) => {
+    updateConfig("general", {
+      lastDocumentPath: docPath,
+      lastDocumentSource: source,
+    });
+  }, [updateConfig]);
 
   // File operations hooks
   const { saveFile, saveFileAs, isSaving } = useFileSave(platform, capabilities);
@@ -142,6 +124,7 @@ function AppShell() {
     activeWorkspace,
     setActiveWorkspaceId,
     createWorkspace,
+    updateWorkspaceSettings,
   } = useWorkspaces(platform, capabilities, storage);
   const [workspacesFilter, setWorkspacesFilter] = useState("");
 
@@ -160,6 +143,9 @@ function AppShell() {
           setContent(newContent);
         });
         setViewMode("view");
+
+        // Persist last-opened document
+        persistDocumentRef(cliPath, "local");
 
         // Register in document model
         if (storage) {
@@ -209,6 +195,9 @@ function AppShell() {
         setFileName(urlFileName);
         setViewMode("view");
 
+        // Persist last-opened document (remote)
+        persistDocumentRef(null, "remote");
+
         // Register in document model
         if (storage) {
           const defaultWs = await storage.getDefaultWorkspace();
@@ -238,6 +227,34 @@ function AppShell() {
     { onFileOpen: handleCliFileOpen, onUrlFetch: handleCliUrlFetch },
     capabilities.hasCliArgs && platform !== null,
   );
+
+  // Restore last-opened document on startup
+  const restorationDone = useRef(false);
+  useEffect(() => {
+    if (restorationDone.current) return;
+    if (!platform || !capabilities.hasFilesystem) return;
+    const lastPath = config.general.lastDocumentPath;
+    const lastSource = config.general.lastDocumentSource;
+    if (!lastPath || lastSource !== "local") return;
+    restorationDone.current = true;
+
+    (async () => {
+      try {
+        const fileContent = await platform.readFile(lastPath);
+        setContent(fileContent);
+        setIsRemote(false);
+        setFilePath(lastPath);
+        const name = lastPath.replace(/\\/g, "/").split("/").pop() ?? lastPath;
+        setFileName(name);
+        startWatching(lastPath, (newContent) => {
+          setContent(newContent);
+        });
+      } catch {
+        // File no longer accessible — clear persisted path
+        persistDocumentRef(null, null);
+      }
+    })();
+  }, [platform, capabilities.hasFilesystem, config.general.lastDocumentPath, config.general.lastDocumentSource, startWatching, persistDocumentRef]);
 
   // Open dialog result handler
   const handleOpenDialogResult = useCallback(async (result: OpenDialogResult) => {
@@ -275,8 +292,11 @@ function AppShell() {
       setActiveWorkspaceId(result.workspaceId);
     }
 
+    // Persist last-opened document
+    persistDocumentRef(result.filePath, result.sourceType === "remote" ? "remote" : "local");
+
     setViewMode("view");
-  }, [storage, startWatching, stopWatching, setViewMode, setActiveWorkspaceId]);
+  }, [storage, startWatching, stopWatching, setViewMode, setActiveWorkspaceId, persistDocumentRef]);
 
   const handlePickWorkspaceDirectory = useCallback(async () => {
     if (!platform || !capabilities.hasFilesystem) return null;
@@ -310,8 +330,9 @@ function AppShell() {
       startWatching(chosenPath, (newContent) => {
         setContent(newContent);
       });
+      persistDocumentRef(chosenPath, "local");
     }
-  }, [content, fileName, isRemote, saveFileAs, startWatching]);
+  }, [content, fileName, isRemote, saveFileAs, startWatching, persistDocumentRef]);
 
   // HTML export handler (for direct keyboard shortcut)
   const handleExportHtml = useCallback(() => {
@@ -320,8 +341,8 @@ function AppShell() {
 
   // PDF export handler (for direct keyboard shortcut)
   const handleExportPdf = useCallback(() => {
-    exportPdf(content, config.engine.activeEngine);
-  }, [content, config.engine.activeEngine, exportPdf]);
+    exportPdf(content, config.engine.activeEngine, fileName);
+  }, [content, config.engine.activeEngine, exportPdf, fileName]);
 
   // Export format dispatcher (from ExportDialog)
   const handleExportFormat = useCallback((format: ExportFormat) => {
@@ -330,7 +351,7 @@ function AppShell() {
         exportHtml(content, config.engine.activeEngine);
         break;
       case "pdf":
-        exportPdf(content, config.engine.activeEngine);
+        exportPdf(content, config.engine.activeEngine, fileName);
         break;
       case "markdown":
         saveFileAs(content, fileName ?? "untitled.md");
@@ -346,8 +367,9 @@ function AppShell() {
     setFilePath(null);
     setIsRemote(false);
     setCurrentDocumentId(null);
+    persistDocumentRef(null, null);
     setViewMode("edit");
-  }, [stopWatching, setViewMode]);
+  }, [stopWatching, setViewMode, persistDocumentRef]);
 
   // Workspace file select handler
   const handleWorkspaceFileSelect = useCallback(
@@ -367,12 +389,15 @@ function AppShell() {
           setContent(newContent);
         });
 
+        // Persist last-opened document
+        persistDocumentRef(selectedPath, "local");
+
         setViewMode("view");
       } catch {
         // File may have been deleted since scan
       }
     },
-    [platform, setViewMode, startWatching],
+    [platform, setViewMode, startWatching, persistDocumentRef],
   );
 
   // Can save: existing local file (not remote, must have a file path)
@@ -425,10 +450,12 @@ function AppShell() {
         workspacesFilter={workspacesFilter}
         onWorkspacesFilterChange={setWorkspacesFilter}
         isWorkspacesScanning={isWorkspacesScanning}
+        onAbout={() => setIsAboutOpen(true)}
+        onHelp={() => handleViewChange("help")}
       />
 
       {/* Pop-down quick settings panel */}
-      {config.general.editorToolbarExpanded && viewMode !== "workspaces" && viewMode !== "settings" && (
+      {config.general.editorToolbarExpanded && viewMode !== "workspaces" && viewMode !== "settings" && viewMode !== "help" && (
         <EditorToolbarPanel
           viewMode={viewMode}
           config={config}
@@ -491,6 +518,8 @@ function AppShell() {
               onActiveWorkspaceChange={setActiveWorkspaceId}
               onCreateWorkspace={createWorkspace}
               onPickExternalDirectory={handlePickWorkspaceDirectory}
+              onNewDocument={handleNewDocument}
+              onUpdateWorkspaceSettings={updateWorkspaceSettings}
               filter={workspacesFilter}
             />
           )}
@@ -499,12 +528,23 @@ function AppShell() {
               capabilities={capabilities}
             />
           )}
+          {viewMode === "help" && (
+            <Preview
+              source={welcomeContent}
+              engineId={config.engine.activeEngine}
+            />
+          )}
         </div>
       </main>
 
       <StatusBar activeEngine={config.engine.activeEngine} />
 
       <InstallPrompt />
+
+      <AboutModal
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
+      />
 
       <OpenDialog
         isOpen={isOpenDialogOpen}

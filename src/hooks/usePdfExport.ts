@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { generateHtmlDocument } from "./useHtmlExport";
 
 export interface UsePdfExportReturn {
-  exportPdf: (source: string, engineId: string) => void;
+  exportPdf: (source: string, engineId: string, fileName?: string | null) => void;
 }
 
 /**
@@ -10,8 +10,11 @@ export interface UsePdfExportReturn {
  * Pipeline: compile markdown → HTML → inject into hidden iframe → window.print()
  */
 export function usePdfExport(): UsePdfExportReturn {
-  const exportPdf = useCallback((source: string, engineId: string) => {
-    const html = generateHtmlDocument(source, engineId);
+  const exportPdf = useCallback((source: string, engineId: string, fileName?: string | null) => {
+    const title = fileName
+      ? fileName.replace(/\.[^.]+$/, "")
+      : "Untitled";
+    const html = generateHtmlDocument(source, engineId, title);
 
     // Build the print-ready document with print styles injected
     const printHtml = html.replace(
@@ -94,28 +97,32 @@ export function usePdfExport(): UsePdfExportReturn {
       iframeDoc.write(printHtml);
       iframeDoc.close();
 
-      // Wait for content to render before printing
-      iframe.onload = () => {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        // Clean up after a short delay
-        setTimeout(() => {
+      let printed = false;
+
+      const cleanup = () => {
+        if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
-        }, 1000);
+        }
       };
 
-      // Fallback: if onload doesn't fire (content already loaded)
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => {
-            if (document.body.contains(iframe)) {
-              document.body.removeChild(iframe);
-            }
-          }, 1000);
+      const doPrint = () => {
+        if (printed) return;
+        printed = true;
+        const iframeWin = iframe.contentWindow;
+        if (iframeWin) {
+          iframeWin.addEventListener("afterprint", cleanup);
+          iframeWin.focus();
+          iframeWin.print();
         }
-      }, 500);
+        // Fallback cleanup if afterprint doesn't fire
+        setTimeout(cleanup, 60000);
+      };
+
+      // Wait for content to render before printing
+      iframe.onload = doPrint;
+
+      // Fallback: if onload doesn't fire (content already loaded)
+      setTimeout(doPrint, 500);
     }
   }, []);
 

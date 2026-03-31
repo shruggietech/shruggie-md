@@ -251,6 +251,7 @@ describe("usePdfExport", () => {
               write: vi.fn(),
               close: vi.fn(),
             },
+            addEventListener: vi.fn(),
             focus: focusSpy,
             print: printSpy,
           },

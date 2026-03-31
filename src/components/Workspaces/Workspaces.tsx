@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import { Plus } from "lucide-react";
-import { Button, Input, Modal, Select } from "../common";
-import type { WorkspaceFile } from "../../hooks/useWorkspaces";
-import { validateWorkspaceName } from "../../hooks/useWorkspaces";
+import { FilePlus, Plus, Settings as SettingsIcon } from "lucide-react";
+import { Button, Input, Modal, Select, Toggle } from "../common";
+import type { WorkspaceFile, WorkspaceSettings } from "../../hooks/useWorkspaces";
+import { validateWorkspaceName, parseWorkspaceSettings } from "../../hooks/useWorkspaces";
 import type { WorkspaceRecord } from "../../storage";
 
 export interface WorkspacesProps {
@@ -14,6 +14,8 @@ export interface WorkspacesProps {
   onActiveWorkspaceChange: (id: string) => void;
   onCreateWorkspace: (name: string, type: "internal" | "external", path?: string) => Promise<string | null>;
   onPickExternalDirectory: () => Promise<string | null>;
+  onNewDocument?: () => void;
+  onUpdateWorkspaceSettings?: (id: string, settings: Partial<WorkspaceSettings>) => Promise<void>;
   filter: string;
 }
 
@@ -80,6 +82,8 @@ export function Workspaces({
   onActiveWorkspaceChange,
   onCreateWorkspace,
   onPickExternalDirectory,
+  onNewDocument,
+  onUpdateWorkspaceSettings,
   filter,
 }: WorkspacesProps) {
   const [sorts, setSorts] = useState<SortSpec[]>([
@@ -91,6 +95,11 @@ export function Workspaces({
   const [externalPath, setExternalPath] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsWorkspaceId, setSettingsWorkspaceId] = useState<string | null>(null);
+
+  const settingsWorkspace = workspaces.find(w => w.id === settingsWorkspaceId) ?? null;
+  const wsSettings = settingsWorkspace ? parseWorkspaceSettings(settingsWorkspace) : null;
 
   const handleHeaderClick = useCallback(
     (key: SortKey, shiftKey: boolean) => {
@@ -243,6 +252,18 @@ export function Workspaces({
           tooltip="Create a new workspace"
           onClick={handleOpenCreate}
         />
+        {activeWorkspaceId && onUpdateWorkspaceSettings && (
+          <Button
+            icon={SettingsIcon}
+            label="Settings"
+            showLabel={false}
+            tooltip="Workspace settings"
+            onClick={() => {
+              setSettingsWorkspaceId(activeWorkspaceId);
+              setIsSettingsOpen(true);
+            }}
+          />
+        )}
       </div>
 
       <table
@@ -386,7 +407,21 @@ export function Workspaces({
                 }}
               >
                 {files.length === 0
-                  ? "No files found. Add a workspace to get started."
+                  ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
+                      <span>No files found. Create a new file or add a workspace to get started.</span>
+                      {onNewDocument && (
+                        <Button
+                          icon={FilePlus}
+                          label="New File"
+                          showLabel={true}
+                          tooltip="Create a new blank document"
+                          variant="accent"
+                          onClick={onNewDocument}
+                        />
+                      )}
+                    </div>
+                  )
                   : "No files match the current filter."}
               </td>
             </tr>
@@ -458,6 +493,56 @@ export function Workspaces({
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        title="Workspace Settings"
+      >
+        {wsSettings && settingsWorkspaceId && (
+          <div data-testid="workspace-settings-modal" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <Toggle
+              label="Recursive traversal"
+              checked={wsSettings.recursive}
+              onChange={(checked) => {
+                onUpdateWorkspaceSettings?.(settingsWorkspaceId, { recursive: checked });
+              }}
+            />
+            <Toggle
+              label="Show hidden files"
+              checked={wsSettings.showHidden}
+              onChange={(checked) => {
+                onUpdateWorkspaceSettings?.(settingsWorkspaceId, { showHidden: checked });
+              }}
+            />
+            <Toggle
+              label="Independent extension rules"
+              checked={wsSettings.useIndependentExtensions}
+              onChange={(checked) => {
+                onUpdateWorkspaceSettings?.(settingsWorkspaceId, { useIndependentExtensions: checked });
+              }}
+            />
+            {wsSettings.useIndependentExtensions && (
+              <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+                  Extension whitelist (comma-separated)
+                </span>
+                <Input
+                  value={wsSettings.independentExtensions.join(", ")}
+                  onChange={(e) => {
+                    const extensions = e.target.value.split(",").map(s => s.trim()).filter(Boolean);
+                    onUpdateWorkspaceSettings?.(settingsWorkspaceId, { independentExtensions: extensions });
+                  }}
+                  placeholder=".md, .markdown, .txt"
+                />
+              </label>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "var(--space-2)" }}>
+              <Button onClick={() => setIsSettingsOpen(false)}>Done</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

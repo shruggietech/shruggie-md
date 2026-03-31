@@ -214,7 +214,6 @@ interface SettingsProps {
 export function Settings({ capabilities }: SettingsProps) {
   const { config, updateConfig, resetConfig } = useConfig();
   const theme = useTheme();
-  const appVersion = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "0.0.0";
 
   // ── Appearance handlers ────────────────────────────────────────────────
   const handleColorMode = useCallback(
@@ -590,45 +589,6 @@ export function Settings({ capabilities }: SettingsProps) {
               />
             </Tooltip>
           </div>
-        </div>
-      </section>
-
-      {/* ── Section 7: About ───────────────────────────────────────────── */}
-      <section data-testid="settings-about" style={cardStyle}>
-        <h2 style={headingStyle}>About</h2>
-        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "var(--font-size-lg)",
-              fontFamily: "var(--font-ui)",
-              fontWeight: "var(--font-weight-semibold)" as unknown as number,
-              color: "var(--color-text-primary)",
-            }}
-          >
-            Shruggie Markdown
-          </p>
-          <p
-            data-testid="settings-about-version"
-            style={{
-              margin: 0,
-              fontSize: "var(--font-size-base)",
-              fontFamily: "var(--font-ui)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            Version {appVersion}
-          </p>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "var(--font-size-sm)",
-              fontFamily: "var(--font-ui)",
-              color: "var(--color-text-tertiary)",
-            }}
-          >
-            Developed by ShruggieTech
-          </p>
         </div>
       </section>
 

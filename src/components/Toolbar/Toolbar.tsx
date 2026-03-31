@@ -1,4 +1,5 @@
-import { Eye, Columns2, FolderOpen, Settings, FileDown, RefreshCw, Search, SquarePen, ChevronDown, ChevronUp, FolderOpenDot, FilePlus } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Eye, Columns2, FolderOpen, Settings, FileDown, RefreshCw, Search, SquarePen, ChevronDown, ChevronUp, FolderOpenDot, FilePlus, Info } from "lucide-react";
 import { Button, SplitButton } from "../common";
 import type { ViewMode } from "@/hooks/useViewMode";
 
@@ -29,6 +30,9 @@ export interface ToolbarProps {
   workspacesFilter?: string;
   onWorkspacesFilterChange?: (filter: string) => void;
   isWorkspacesScanning?: boolean;
+  // Info menu
+  onAbout?: () => void;
+  onHelp?: () => void;
 }
 
 interface ViewButton {
@@ -99,12 +103,30 @@ export function Toolbar({
   workspacesFilter = "",
   onWorkspacesFilterChange,
   isWorkspacesScanning = false,
+  onAbout,
+  onHelp,
 }: ToolbarProps) {
   const isWorkspacesView = activeView === "workspaces";
   const isSettingsView = activeView === "settings";
-  const isDocumentView = !isWorkspacesView && !isSettingsView;
+  const isHelpView = activeView === "help";
+  const isDocumentView = !isWorkspacesView && !isSettingsView && !isHelpView;
   const showToolbarChevron = onToggleToolbarPanel && isDocumentView;
   const fullFileTitle = filePath ?? fileName ?? "";
+
+  const [infoMenuOpen, setInfoMenuOpen] = useState(false);
+  const infoMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close info menu on outside click
+  useEffect(() => {
+    if (!infoMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (infoMenuRef.current && !infoMenuRef.current.contains(e.target as Node)) {
+        setInfoMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [infoMenuOpen]);
 
   return (
     <header
@@ -260,6 +282,12 @@ export function Toolbar({
           </span>
         )}
 
+        {isHelpView && (
+          <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-sm)" }}>
+            Help
+          </span>
+        )}
+
         {isDocumentView && (
           <span
             data-testid="toolbar-filename"
@@ -361,6 +389,92 @@ export function Toolbar({
             showLabel={showButtonLabels}
             onClick={() => onViewChange("settings")}
           />
+          {(onAbout || onHelp) && (
+            <div ref={infoMenuRef} style={{ position: "relative" }}>
+              <Button
+                icon={Info}
+                tooltip="Info"
+                label="Info"
+                showLabel={showButtonLabels}
+                onClick={() => setInfoMenuOpen((v) => !v)}
+              />
+              {infoMenuOpen && (
+                <div
+                  data-testid="info-dropdown"
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: "var(--space-1)",
+                    backgroundColor: "var(--color-bg-secondary)",
+                    border: "1px solid var(--color-border-primary)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "var(--space-1) 0",
+                    minWidth: 140,
+                    zIndex: 900,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  {onAbout && (
+                    <button
+                      type="button"
+                      data-testid="info-about"
+                      onClick={() => { setInfoMenuOpen(false); onAbout(); }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        padding: "var(--space-2) var(--space-3)",
+                        border: "none",
+                        backgroundColor: "transparent",
+                        color: "var(--color-text-primary)",
+                        fontSize: "var(--font-size-sm)",
+                        fontFamily: "var(--font-ui)",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background-color 120ms ease-out",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      About
+                    </button>
+                  )}
+                  {onHelp && (
+                    <button
+                      type="button"
+                      data-testid="info-help"
+                      onClick={() => { setInfoMenuOpen(false); onHelp(); }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        padding: "var(--space-2) var(--space-3)",
+                        border: "none",
+                        backgroundColor: "transparent",
+                        color: "var(--color-text-primary)",
+                        fontSize: "var(--font-size-sm)",
+                        fontFamily: "var(--font-ui)",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background-color 120ms ease-out",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      Help
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>

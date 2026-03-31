@@ -41,7 +41,7 @@ export function extractMarkdownContent(): string {
 
 const INJECTED_CSS = /* css */ `
 /* ── Design tokens (dark default) ──────────────────────────────── */
-[data-theme="dark"] {
+:host([data-theme="dark"]) {
   --color-bg-primary: #1a1a1a;
   --color-bg-secondary: #222222;
   --color-bg-tertiary: #1e1e1e;
@@ -59,7 +59,7 @@ const INJECTED_CSS = /* css */ `
   --color-warning: #ffd60a;
   --color-error: #ff453a;
 }
-[data-theme="light"] {
+:host([data-theme="light"]) {
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #f5f5f7;
   --color-bg-tertiary: #fafafa;
@@ -358,9 +358,11 @@ function mount(): void {
   style.textContent = INJECTED_CSS;
   shadow.appendChild(style);
 
-  // Root wrapper (carries data-theme)
+  // Set data-theme on the shadow host so :host() selectors resolve color tokens
+  host.setAttribute("data-theme", state.theme);
+
+  // Root wrapper
   const root = document.createElement("div");
-  root.setAttribute("data-theme", state.theme);
   shadow.appendChild(root);
 
   // Preview + source containers
@@ -392,7 +394,7 @@ function mount(): void {
   /* ── Rebuild toolbar & re-render ───────────────────────── */
   function rebuild(): void {
     root.innerHTML = "";
-    root.setAttribute("data-theme", state.theme);
+    host.setAttribute("data-theme", state.theme);
 
     const toolbar = buildToolbar(state, {
       onThemeToggle() {

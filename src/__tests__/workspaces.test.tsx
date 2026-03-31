@@ -332,7 +332,7 @@ describe("Workspaces table", () => {
     );
 
     expect(screen.getByTestId("workspaces-empty")).toHaveTextContent(
-      "No files found. Add a workspace to get started.",
+      "No files found. Create a new file or add a workspace to get started.",
     );
   });
 

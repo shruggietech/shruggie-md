@@ -31,8 +31,10 @@ export interface Config {
     independentExtensions: string[];
   };
   general: {
-    lastViewMode: "view" | "edit" | "edit-only" | null;
+    lastViewMode: "view" | "edit" | "edit-only" | "workspaces" | "settings" | null;
     editorToolbarExpanded: boolean;
+    lastDocumentPath: string | null;
+    lastDocumentSource: "local" | "remote" | null;
   };
   advanced: {
     logVerbosity: "debug" | "info" | "warning" | "error";

@@ -31,7 +31,7 @@ export interface WorkspaceSettings {
   independentExtensions: string[];
 }
 
-function parseWorkspaceSettings(ws: WorkspaceRecord): WorkspaceSettings {
+export function parseWorkspaceSettings(ws: WorkspaceRecord): WorkspaceSettings {
   try {
     const raw = (ws as unknown as Record<string, unknown>).settings;
     if (typeof raw === "string") return JSON.parse(raw) as WorkspaceSettings;
@@ -84,12 +84,17 @@ export function useWorkspaces(
 
   const globalExtensions = config.fileExtensions.recognized;
 
+  // Track previous workspace ID for auto-scan logic (declared early so refreshWorkspaces can reset it)
+  const prevWsId = useRef<string | null>(null);
+
   // Load workspaces from storage
   const refreshWorkspaces = useCallback(async () => {
     const store = storageRef.current;
     if (!store) return;
     const list = await store.listWorkspaces();
     setWorkspaces(list);
+    // Reset so auto-scan effect re-triggers for the active workspace
+    prevWsId.current = null;
   }, []);
 
   // Initialize: load workspaces, ensure default exists
@@ -191,7 +196,6 @@ export function useWorkspaces(
   }, [capabilities.hasFilesystem, activeWorkspace, globalExtensions]);
 
   // Auto-scan when active workspace changes
-  const prevWsId = useRef<string | null>(null);
   useEffect(() => {
     if (activeWorkspace && activeWorkspace.id !== prevWsId.current) {
       prevWsId.current = activeWorkspace.id;

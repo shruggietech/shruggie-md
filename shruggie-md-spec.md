@@ -412,7 +412,7 @@ All spacing values are multiples of a 4px base unit, following an 8pt-grid-align
 
 **Context zone.** Shows centered document context with ellipsis overflow. In document modes this is the filename (`text-align: center`, `white-space: nowrap`, `overflow: hidden`, `text-overflow: ellipsis`) with a native `title` attribute for full-path hover. In Workspaces mode this region is replaced by workspace controls (refresh + filter input + scanning state). In Settings mode it shows a centered Settings label.
 
-**Actions zone.** Contains file actions (Open, New, Save/Save As SplitButton, Export) followed by a subtle vertical separator (`1px`, `--color-border-subtle`) and destination buttons (Workspaces, Settings). Workspaces and Settings are not part of the segmented content-mode control; they are standalone destination buttons and use `--color-bg-active` when selected.
+**Actions zone.** Contains file actions (Open, New, Save/Save As SplitButton, Export) followed by a subtle vertical separator (`1px`, `--color-border-subtle`) and destination buttons (Workspaces, Settings, Info). Workspaces and Settings are not part of the segmented content-mode control; they are standalone destination buttons and use `--color-bg-active` when selected. The **Info** button opens a dropdown menu with two items: **About** (opens the About modal) and **Help** (switches to the Help view).
 
 **Pop-Down Quick-Settings Panel.** A collapsible panel that slides down from the toolbar when the user clicks the chevron (`ChevronDown` / `ChevronUp`) button. Animation: slide down over 150ms ease-out. The panel's visibility state is persisted in `general.editorToolbarExpanded` (default `false`). The panel is hidden when Workspaces or Settings views are active. Content varies by active view mode:
 
@@ -555,9 +555,31 @@ Settings sections (in order of appearance):
 4. **Markdown Engine** — Engine selection dropdown.
 5. **File Extensions** — Extension whitelist editor.
 6. **Advanced** — Log verbosity setting.
-7. **About** — App name, runtime version, and product attribution.
 
-Per-workspace settings (recursion, hidden files, independent extensions) are managed through the workspace settings modal, not the global Settings view.
+The About information has been moved to a standalone modal accessible from the Info toolbar button dropdown. Per-workspace settings (recursion, hidden files, independent extensions) are managed through the workspace settings modal, not the global Settings view.
+
+### 5.6. About Modal
+
+The About modal is opened from the Info toolbar dropdown > About. It is a centered modal dialog (not a full view) displaying:
+
+- Application name: "Shruggie Markdown"
+- Current version (from the `__APP_VERSION__` build-time constant)
+- Build platform (Tauri Desktop, Chrome Extension, or PWA, detected at runtime)
+- Attribution: "Built by Shruggie LLC (DBA ShruggieTech)"
+- Link to the GitHub repository
+- License: Apache-2.0
+
+The About modal is transient; it does not affect view mode persistence.
+
+### 5.7. Help View
+
+The Help view is opened from the Info toolbar dropdown > Help. It renders the application's welcome/onboarding content in read-only mode using the Preview component. The Help view:
+
+- Is **not editable**. No editor is rendered.
+- Is **not a document**. It does not set `fileName`, `filePath`, or `content` state. It does not affect the file watcher and cannot be saved or exported.
+- Uses the same static content string as the default welcome document shown on first launch (sourced from `src/constants/welcomeContent.ts`).
+- Displays a minimal toolbar state (no Save, Export, or file-related controls), similar to the Settings view.
+- Is a transient view: the `"help"` view mode is not persisted to `general.lastViewMode`.
 
 ---
 
@@ -615,6 +637,8 @@ Export is accessed through a unified **Export dialog** (`Ctrl/Cmd+Shift+E` or th
 | **Markdown** | Raw markdown file (.md) saved via Save As. | — |
 
 The direct keyboard shortcuts (`Ctrl/Cmd+Shift+H` and `Ctrl/Cmd+Shift+P`) bypass the dialog and invoke the corresponding export immediately.
+
+**PDF default filename.** The PDF export sets the HTML `<title>` of the generated document to the current filename (without extension) if a file is open, or `"Untitled"` if no file is open. This title is used by the browser's print dialog as the default filename for the saved PDF. A guard flag prevents the print dialog from appearing twice per export invocation.
 
 **HTML export** produces the same compiled HTML that is rendered in the preview pane, wrapped in a self-contained document with inlined theme styles.
 
@@ -852,6 +876,8 @@ Clicking a row opens the file in full-view mode. The table supports multi-column
 
 </div>
 
+**Empty state.** When the active workspace contains no recognized files, the file table area displays the message: "No files found. Create a new file or add a workspace to get started." Two action buttons are presented: a "New File" button (triggers the same new-document handler as the toolbar's New Document button, switching to edit mode with a blank buffer) and the existing workspace management controls.
+
 <a name="96-per-workspace-settings" id="96-per-workspace-settings"></a>
 
 ### 9.6. Per-Workspace Settings
@@ -912,9 +938,11 @@ All configuration keys have compiled defaults in the application source. User-se
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| Last view mode | `"view"` \| `"edit"` \| `"edit-only"` \| `null` | `null` | Persisted user preference for the initial view mode. When `null`, the platform-aware default applies (Edit on desktop, View on web). Only content modes are persisted; transient views (Workspaces, Settings) are never stored. Legacy values `"full-view"` and `"split-view"` are silently migrated to `"view"` and `"edit"`. |
+| Last view mode | `"view"` \| `"edit"` \| `"edit-only"` \| `"workspaces"` \| `"settings"` \| `null` | `null` | Persisted user preference for the initial view mode. All five primary view modes are persisted. Transient views (`"help"`) are never stored. When `null`, the platform-aware default applies (Edit on desktop, View on web). Legacy values `"full-view"` and `"split-view"` are silently migrated to `"view"` and `"edit"`. |
 | Editor toolbar expanded | `boolean` | `false` | Whether the pop-down quick-settings panel below the toolbar is expanded on launch. |
 | Log verbosity | `"debug"` \| `"info"` \| `"warning"` \| `"error"` | `"warning"` | Controls the minimum severity level for persisted log entries. Entries below this threshold are still written to the browser console during development but are not stored. Exposed in the **Advanced** section of the Settings panel ([§10.6](#106-logging)). |
+| Last document path | `string` \| `null` | `null` | The filesystem path of the last-opened local document. Used for document restoration on launch. |
+| Last document source | `"local"` \| `"remote"` \| `null` | `null` | Whether the last document was local or remote. Remote documents are not restored on launch (they require a fresh fetch). |
 
 <a name="102-theme-and-appearance" id="102-theme-and-appearance"></a>
 
@@ -1017,6 +1045,15 @@ Window geometry writes occur in two paths: (1) debounced incremental saves on mo
 
 These keys are stored in the config table but are **not** part of the React `Config` type — they are read and written directly by the `useWindowState` hook and are invisible to the Settings UI.
 
+### 10.8. Document State Restoration
+
+On application startup, after config and storage are loaded, the application reads `general.lastDocumentPath` and `general.lastDocumentSource` from the persisted config:
+
+- If the source is `"local"` and the path is non-null, the application attempts to read the file via the platform adapter's `readFile`. On success, it populates `content`, `fileName`, `filePath`, and starts the file watcher. On failure (file deleted, moved, or inaccessible), the persisted keys are cleared and the application proceeds with the default welcome document.
+- If the source is `"remote"` or `null`, no restoration is attempted.
+
+Document path persistence is updated whenever a file is opened (via Open dialog, workspace file click, CLI argument, or Save As) and cleared when the user creates a new blank document.
+
 ---
 
 <a name="11-platform-targets" id="11-platform-targets"></a>
@@ -1069,6 +1106,8 @@ Manifest V3 configuration:
 - `storage`: `chrome.storage.sync` for configuration persistence.
 
 The Chrome extension does NOT support the workspace system or file watching. These features require filesystem access unavailable in the extension context.
+
+**Dark mode in the content script.** The content script injects a shadow DOM to isolate its styles from the host page. Theme color tokens (CSS custom properties) are defined on the `:host([data-theme="dark"])` and `:host([data-theme="light"])` selectors so that the background and text colors cascade correctly within the shadow tree. The `data-theme` attribute is set on the shadow host element itself, not on a child element, to ensure proper scoping.
 
 <a name="113-progressive-web-app" id="113-progressive-web-app"></a>
 
