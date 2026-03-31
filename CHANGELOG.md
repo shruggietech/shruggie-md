@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-03-30
+
+### Fixed
+
+- Tauri desktop capability set now explicitly allows window destroy (`core:window:allow-destroy`), fixing a permissions mismatch that could block the native close flow after `preventDefault`.
+
 ## [0.3.4] - 2026-03-30
 
 ### Fixed
 
 - Native window close flow now uses explicit close handling (`preventDefault` + timeout-guarded save + `destroy`) to guarantee the Windows title-bar "X" exits reliably even when persistence operations stall.
-- Tauri desktop capability set now explicitly allows window destroy (`core:window:allow-destroy`), fixing a permissions mismatch that could block the native close flow after `preventDefault`.
 
 ## [0.3.3] - 2026-03-30
 
@@ -196,7 +201,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.4...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/shruggietech/shruggie-md/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/shruggietech/shruggie-md/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/shruggietech/shruggie-md/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/shruggietech/shruggie-md/compare/v0.3.1...v0.3.2
