@@ -16,6 +16,7 @@
   --color-text-primary: #e8e8e8;
   --color-text-secondary: #999999;
   --color-text-tertiary: #666666;
+  --color-inline-code: #86d39f;
 
   /* Accent tokens */
   --color-accent: #5e9eff;
@@ -45,6 +46,7 @@
   --color-text-primary: #1d1d1f;
   --color-text-secondary: #6e6e73;
   --color-text-tertiary: #aeaeb2;
+  --color-inline-code: #1f6e3a;
 
   /* Accent tokens */
   --color-accent: #0071e3;

@@ -9,7 +9,7 @@
 | License | Apache-2.0 |
 | Version | Pre-release (0.1.0 target) |
 | Author | William Thompson (Shruggie LLC, DBA ShruggieTech) |
-| Latest Revision Date | 2026-03-24 |
+| Latest Revision Date | 2026-04-11 |
 | Document Status | DRAFT |
 | Audience | AI-first, Human-second |
 
@@ -71,6 +71,7 @@
   - [10.1. Configuration Architecture](#101-configuration-architecture)
   - [10.2. Theme and Appearance](#102-theme-and-appearance)
   - [10.3. Editor Preferences](#103-editor-preferences)
+  - [10.3.1. Preview Preferences](#1031-preview-preferences)
   - [10.4. File Extension Rules](#104-file-extension-rules)
   - [10.5. Storage Locations](#105-storage-locations)
 - [11. Platform Targets](#11-platform-targets)
@@ -323,6 +324,7 @@ All colors are defined as semantic tokens, never as raw hex values in component 
 | `--color-text-primary` | Body text, headings | `#e8e8e8` | `#1d1d1f` |
 | `--color-text-secondary` | Subdued labels, metadata | `#999999` | `#6e6e73` |
 | `--color-text-tertiary` | Placeholders, disabled text | `#666666` | `#aeaeb2` |
+| `--color-inline-code` | Inline code foreground (non-fenced code spans) | `#86d39f` | `#1f6e3a` |
 
 **Accent tokens:**
 
@@ -413,6 +415,8 @@ All spacing values are multiples of a 4px base unit, following an 8pt-grid-align
 **Context zone.** Shows centered document context with ellipsis overflow. In document modes this is the filename (`text-align: center`, `white-space: nowrap`, `overflow: hidden`, `text-overflow: ellipsis`) with a native `title` attribute for full-path hover. In Workspaces mode this region is replaced by workspace controls (refresh + filter input + scanning state). In Settings mode it shows a centered Settings label.
 
 **Actions zone.** Contains file actions (Open, New, Save/Save As SplitButton, Export) followed by a subtle vertical separator (`1px`, `--color-border-subtle`) and destination buttons (Workspaces, Settings, Info). Workspaces and Settings are not part of the segmented content-mode control; they are standalone destination buttons and use `--color-bg-active` when selected. The **Info** button opens a dropdown menu with two items: **About** (opens the About modal) and **Help** (switches to the Help view).
+
+**Refresh button.** A **Refresh** (`RefreshCw` icon) button appears in the Actions zone when any document mode (View, Edit, Edit Only) is active. It is not rendered in the Workspaces or Settings views. Behavior: if no unsaved changes exist, clicking Refresh re-reads the current file from disk (local files on platforms with filesystem access) and re-renders the preview. If unsaved changes exist, clicking Refresh opens an **Unsaved Changes** modal with the message "Refreshing will discard your unsaved edits and reload the current document." The modal provides **Cancel** (dismisses without action) and **Discard & Refresh** (proceeds with reload) buttons. The modal uses `data-testid="unsaved-changes-modal-content"` for test selectors.
 
 **Pop-Down Quick-Settings Panel.** A collapsible panel that slides down from the toolbar when the user clicks the chevron (`ChevronDown` / `ChevronUp`) button. Animation: slide down over 150ms ease-out. The panel's visibility state is persisted in `general.editorToolbarExpanded` (default `false`). The panel is hidden when Workspaces or Settings views are active. Content varies by active view mode:
 
@@ -552,11 +556,13 @@ Settings sections (in order of appearance):
 1. **Appearance** — Color mode toggle (Light / Dark / System), visual style selection.
 2. **Editor** — Font selection, font size, linting toggle, linter selection.
 3. **Preview** — Font selection, font size, line height.
-4. **Markdown Engine** — Engine selection dropdown.
+4. **Markdown Engine** — Engine selection dropdown with guidance that common markdown output is usually similar across engines, while edge-case constructs may differ.
 5. **File Extensions** — Extension whitelist editor.
 6. **Advanced** — Log verbosity setting.
 
 The About information has been moved to a standalone modal accessible from the Info toolbar button dropdown. Per-workspace settings (recursion, hidden files, independent extensions) are managed through the workspace settings modal, not the global Settings view.
+
+The Markdown Engine card includes a concise capability note so users can understand why switching engines may not show dramatic visual changes on simple documents. This is intentional: common markdown syntax is expected to render similarly, while parser-specific behavior appears in edge cases such as typographer transformations, footnote serialization, and task-list HTML structure.
 
 ### 5.6. About Modal
 
@@ -604,7 +610,7 @@ The dialog also includes:
 
 **Document model.** Every opened file is registered in the documents table with a unique ID, source type (`local`, `remote`, or `internal`), source path/URL, and the selected workspace ID. This metadata is used for edit history, workspace browsing, and save-path tracking.
 
-**CLI and OS associations.** Files opened via CLI (`shruggie-md <filepath>`) or OS file association (double-click) bypass the dialog. The file is opened directly into the default workspace. URL arguments (`shruggie-md --url <url>`) are fetched and registered the same way.
+**CLI and OS associations.** Files opened via CLI (`shruggie-md <filepath>`) or OS file association (double-click) bypass the dialog. The file is opened directly into the default workspace. URL arguments (`shruggie-md --url <url>`) are fetched and registered the same way. When a CLI or OS-association argument is successfully handled at startup, it takes precedence over last-session document restoration — the restoration step is skipped entirely for that launch. If the argument is present but cannot be resolved (file not found, URL unreachable), restoration proceeds as normal.
 
 **Live reload.** On desktop, a filesystem watcher (Tauri's `watch` API) monitors the open file. When the file's modification timestamp changes, the source is re-read and the preview re-renders. The watcher debounces rapid successive changes with a 300ms delay to avoid unnecessary render cycles during active external editing.
 
@@ -766,15 +772,19 @@ The markdown engine is selectable in the technical options section of settings. 
 
 </div>
 
+Routing is wired end-to-end through configuration. The Settings dropdown writes `engine.activeEngine`; the app passes that value as `engineId` into preview rendering and export hooks; and the renderer dispatches to the selected engine implementation via the `engines` map in `src/engines/index.ts`.
+
 | Engine | Package | Default | Notes |
 |--------|---------|---------|-------|
-| markdown-it | `markdown-it` | Yes | Fast, CommonMark-compliant, rich plugin ecosystem. Supports GFM tables, task lists, footnotes via plugins. |
-| marked | `marked` | No | Lightweight and fast. Fewer extension points than markdown-it. |
-| remark (unified) | `remark` + `remark-html` | No | AST-based pipeline. Maximum extensibility. Pairs naturally with remark-lint. |
+| markdown-it | `markdown-it` | Yes | Fast, CommonMark-compliant, rich plugin ecosystem. In this app, typographer mode is enabled; task lists and footnotes are plugin-backed. Engine audit (2026-04-11): all three engines confirmed functional against representative markdown inputs. |
+| marked | `marked` | No | Lightweight and fast. GFM mode enabled (`gfm: true`). Typographer transforms are not applied and footnotes are not supported without additional plugins. Common markdown output is near-identical to markdown-it on standard constructs. |
+| remark (unified) | `remark` + `remark-html` | No | AST-based pipeline. Maximum extensibility. Pairs naturally with remark-lint. Includes remark-gfm in this app. `remarkHtml` is configured with `sanitize: false` because XSS sanitization is handled downstream by DOMPurify at step 3 of the rendering pipeline (§8.1) — not by the engine itself. |
 
 <div style="text-align:justify">
 
 All engines MUST produce output that passes through the same sanitization and styling pipeline. Engine selection affects parsing behavior (e.g., how edge-case markdown constructs are interpreted), not the visual presentation of the rendered output.
+
+For ordinary markdown (headings, paragraphs, emphasis, basic lists, links, and fenced code), outputs are intentionally near-identical. Observable differences are primarily in edge cases.
 
 </div>
 
@@ -786,15 +796,17 @@ The preview pane applies a dedicated stylesheet to rendered HTML. This styleshee
 
 Key rendered content styles:
 
-- **Headings.** `h1` through `h6` use `--font-preview` with descending sizes (28px, 22px, 18px, 16px, 15px, 13px). Bottom border on `h1` and `h2` (`1px solid --color-border-subtle`). Margin top: `1.5em`, margin bottom: `0.5em`.
-- **Paragraphs.** `--font-size-preview`, `--line-height-preview`. Margin bottom: `1em`.
+- **Base typography.** Uses a GitHub-aligned system sans stack via `--font-preview` fallback, with configurable `--font-size-preview` and `--line-height-preview`.
+- **Headings.** `h1` through `h6` follow GitHub-like scale (`2em`, `1.5em`, `1.25em`, `1em`, `0.875em`, `0.85em`). `h1`/`h2` include bottom borders (`1px solid --color-border-subtle`).
+- **Paragraphs.** `--font-size-preview`, `--line-height-preview`. Margin bottom: `16px`.
 - **Code blocks.** Background: `--color-bg-tertiary`. Padding: `--space-4`. Border radius: `6px` (GitHub-aligned). Font: `--font-preview-mono`. Overflow: horizontal scroll.
-- **Inline code.** Background: `--color-bg-hover`. Padding: `2px 6px`. Border radius: `3px`.
-- **Blockquotes.** Left border: `4px solid --color-border-primary`. Padding left: `--space-4`. Text color: `--color-text-secondary`.
-- **Tables.** Full width. Header row: `--color-bg-secondary` background, `--font-weight-semibold`. Cell padding: `--space-2` vertical, `--space-3` horizontal. Borders: `1px solid --color-border-primary`. Body rows use alternating backgrounds (`transparent` / `--color-bg-tertiary`) for GitHub-style scanability.
+- **Inline code.** Background: `--color-bg-hover`; border: `1px solid --color-border-subtle`; text color: `--color-inline-code` (muted green in both themes). Scoped to inline code only (`:not(pre) > code`) so fenced code highlighting is unaffected.
+- **Blockquotes.** Left border: `0.25em solid --color-border-primary`; muted text color `--color-text-secondary`; GitHub-style horizontal spacing.
+- **Tables.** Full width. Header row: `--color-bg-secondary` background, `--font-weight-semibold`. Cell padding: `6px 13px`. Borders: `1px solid --color-border-subtle`. Body rows use alternating backgrounds (`transparent` / `--color-bg-tertiary`) for GitHub-style scanability.
 - **Links.** Color: `--color-accent`. No underline by default; underline on hover.
 - **Images.** Max width: `100%`. Border radius: `--radius-sm`. Centered within the reading column.
-- **Horizontal rules.** `1px solid --color-border-subtle`. Margin: `--space-6` vertical.
+- **Horizontal rules.** GitHub-like separator: `height: 0.25em`, no border, `--color-border-subtle` fill.
+- **Lists.** Explicit marker restoration for global-reset compatibility: unordered lists use `disc/circle/square` across nesting, ordered lists use `decimal/lower-alpha/lower-roman`, preserving visible markers in View and Edit modes.
 - **Task lists.** Custom checkbox styling matching the application's visual language (accent color when checked, subtle border when unchecked).
 
 ---
@@ -972,6 +984,35 @@ Visual styles adjust the color token values within the active color mode. For ex
 | Linting enabled | boolean | `false` |
 | Active linter | enum | `markdownlint` |
 
+<a name="1031-preview-preferences" id="1031-preview-preferences"></a>
+
+### 10.3.1. Preview Preferences
+
+| Setting | Config key | Type | Default |
+|---------|-----------|------|---------|
+| Font family | `preview.fontFamily` | enum (curated list) | System Default (`-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif`) |
+| Font size | `preview.fontSize` | number (px) | `15` |
+| Line height | `preview.lineHeight` | number | `1.7` |
+
+Font family is exposed as a dropdown (`Select` component) populated from the `PREVIEW_FONTS` constant (`src/config/previewFonts.ts`). The curated list provides 12 named options:
+
+| Label | CSS font stack |
+|-------|---------------|
+| Arial | `Arial, sans-serif` |
+| Cambria | `Cambria, Georgia, serif` |
+| Consolas | `Consolas, monospace` |
+| Courier New | `"Courier New", Courier, monospace` |
+| Georgia | `Georgia, serif` |
+| Helvetica | `Helvetica, Arial, sans-serif` |
+| Inter | `Inter, sans-serif` |
+| JetBrains Mono | `"JetBrains Mono", monospace` |
+| Roboto | `Roboto, sans-serif` |
+| System Default | `-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif` |
+| Times New Roman | `"Times New Roman", Times, serif` |
+| Verdana | `Verdana, Geneva, sans-serif` |
+
+On load, if the persisted `preview.fontFamily` value does not match any entry in the curated list, it is silently replaced with the System Default value (migration guard in `src/config/store.ts`).
+
 <a name="104-file-extension-rules" id="104-file-extension-rules"></a>
 
 ### 10.4. File Extension Rules
@@ -1051,6 +1092,8 @@ On application startup, after config and storage are loaded, the application rea
 
 - If the source is `"local"` and the path is non-null, the application attempts to read the file via the platform adapter's `readFile`. On success, it populates `content`, `fileName`, `filePath`, and starts the file watcher. On failure (file deleted, moved, or inaccessible), the persisted keys are cleared and the application proceeds with the default welcome document.
 - If the source is `"remote"` or `null`, no restoration is attempted.
+
+**CLI argument precedence.** Restoration only runs after CLI argument handling completes. If `capabilities.hasCliArgs` is true, the restoration effect waits until `cliArgsResolution` leaves the `"pending"` state. When `cliArgsResolution` is `"handled"` (a file path or URL was successfully opened from a CLI/OS argument), restoration is skipped entirely for that launch. When `cliArgsResolution` is `"none"` or `"fallback"` (no argument, or argument present but not successfully resolved), restoration proceeds as normal.
 
 Document path persistence is updated whenever a file is opened (via Open dialog, workspace file click, CLI argument, or Save As) and cleared when the user creates a new blank document.
 

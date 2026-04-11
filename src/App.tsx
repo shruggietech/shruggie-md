@@ -25,7 +25,7 @@ import { Settings } from "./components/Settings";
 import { Workspaces } from "./components/Workspaces";
 import { StatusBar } from "./components/StatusBar";
 import { AboutModal } from "./components/AboutModal";
-import { InstallPrompt } from "./components/common";
+import { InstallPrompt, Modal } from "./components/common";
 import { getPlatform } from "./platform/platform";
 import type { PlatformAdapter, PlatformCapabilities } from "./platform/platform";
 import { ConfigProvider, useConfig } from "./config";
@@ -72,11 +72,15 @@ function AppShell() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
   const [content, setContent] = useState(defaultContent);
+  const [syncedContent, setSyncedContent] = useState(defaultContent);
   const [isRemote, setIsRemote] = useState(false);
   const [isOpenDialogOpen, setIsOpenDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isUnsavedChangesOpen, setIsUnsavedChangesOpen] = useState(false);
+  const [previewRenderNonce, setPreviewRenderNonce] = useState(0);
   const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(null);
+  const [cliArgsResolution, setCliArgsResolution] = useState<"pending" | "none" | "handled" | "fallback">("pending");
 
   // Apply live CSS custom property updates from config
   useConfigEffects(config);
@@ -131,16 +135,18 @@ function AppShell() {
   // CLI arguments: open file or URL from command line
   const handleCliFileOpen = useCallback(
     async (cliPath: string) => {
-      if (!platform) return;
+      if (!platform) return false;
       try {
         const fileContent = await platform.readFile(cliPath);
         setContent(fileContent);
+        setSyncedContent(fileContent);
         setIsRemote(false);
         setFilePath(cliPath);
         const name = cliPath.replace(/\\/g, "/").split("/").pop() ?? cliPath;
         setFileName(name);
         startWatching(cliPath, (newContent) => {
           setContent(newContent);
+          setSyncedContent(newContent);
         });
         setViewMode("view");
 
@@ -165,8 +171,10 @@ function AppShell() {
             setCurrentDocumentId(docId);
           }
         }
+        return true;
       } catch {
         // File not readable — stay on default content
+        return false;
       }
     },
     [platform, startWatching, setViewMode, storage],
@@ -177,17 +185,18 @@ function AppShell() {
       stopWatching();
       try {
         const response = await fetch(url);
-        if (!response.ok) return;
+        if (!response.ok) return false;
         const contentType = response.headers.get("content-type") ?? "";
         const isText =
           contentType.includes("text/") ||
           contentType.includes("application/json") ||
           contentType.includes("application/xml") ||
           contentType === "";
-        if (!isText) return;
+        if (!isText) return false;
 
         const fetchedContent = await response.text();
         setContent(fetchedContent);
+        setSyncedContent(fetchedContent);
         setIsRemote(true);
         setFilePath(null);
         const urlParts = url.split("/");
@@ -216,15 +225,29 @@ function AppShell() {
             setCurrentDocumentId(docId);
           }
         }
+        return true;
       } catch {
         // URL not fetchable — stay on default content
+        return false;
       }
     },
     [stopWatching, setViewMode, storage],
   );
 
   useCliArgs(
-    { onFileOpen: handleCliFileOpen, onUrlFetch: handleCliUrlFetch },
+    {
+      onFileOpen: handleCliFileOpen,
+      onUrlFetch: handleCliUrlFetch,
+      onResolved: (result) => {
+        if (result.handled) {
+          setCliArgsResolution("handled");
+        } else if (result.source === "none") {
+          setCliArgsResolution("none");
+        } else {
+          setCliArgsResolution("fallback");
+        }
+      },
+    },
     capabilities.hasCliArgs && platform !== null,
   );
 
@@ -233,6 +256,16 @@ function AppShell() {
   useEffect(() => {
     if (restorationDone.current) return;
     if (!platform || !capabilities.hasFilesystem) return;
+
+    // Wait for CLI argument resolution so startup file paths can take precedence.
+    if (capabilities.hasCliArgs && cliArgsResolution === "pending") return;
+
+    // Startup argument was handled successfully; skip last-session restoration.
+    if (cliArgsResolution === "handled") {
+      restorationDone.current = true;
+      return;
+    }
+
     const lastPath = config.general.lastDocumentPath;
     const lastSource = config.general.lastDocumentSource;
     if (!lastPath || lastSource !== "local") return;
@@ -242,19 +275,21 @@ function AppShell() {
       try {
         const fileContent = await platform.readFile(lastPath);
         setContent(fileContent);
+        setSyncedContent(fileContent);
         setIsRemote(false);
         setFilePath(lastPath);
         const name = lastPath.replace(/\\/g, "/").split("/").pop() ?? lastPath;
         setFileName(name);
         startWatching(lastPath, (newContent) => {
           setContent(newContent);
+          setSyncedContent(newContent);
         });
       } catch {
         // File no longer accessible — clear persisted path
         persistDocumentRef(null, null);
       }
     })();
-  }, [platform, capabilities.hasFilesystem, config.general.lastDocumentPath, config.general.lastDocumentSource, startWatching, persistDocumentRef]);
+  }, [platform, capabilities.hasFilesystem, capabilities.hasCliArgs, cliArgsResolution, config.general.lastDocumentPath, config.general.lastDocumentSource, startWatching, persistDocumentRef]);
 
   // Open dialog result handler
   const handleOpenDialogResult = useCallback(async (result: OpenDialogResult) => {
@@ -275,6 +310,7 @@ function AppShell() {
     }
 
     setContent(result.content);
+    setSyncedContent(result.content);
     setFileName(result.fileName);
     setFilePath(result.filePath);
     setIsRemote(result.sourceType === "remote");
@@ -283,6 +319,7 @@ function AppShell() {
     if (result.filePath) {
       startWatching(result.filePath, (newContent) => {
         setContent(newContent);
+        setSyncedContent(newContent);
       });
     } else {
       stopWatching();
@@ -306,7 +343,8 @@ function AppShell() {
   // Save handler
   const handleSave = useCallback(async () => {
     if (isRemote || !filePath) return;
-    saveFile(content, filePath);
+    await saveFile(content, filePath);
+    setSyncedContent(content);
     if (storage && currentDocumentId) {
       await storage.updateDocument(currentDocumentId, {
         updated_at: new Date().toISOString(),
@@ -329,10 +367,17 @@ function AppShell() {
       setFileName(name);
       startWatching(chosenPath, (newContent) => {
         setContent(newContent);
+        setSyncedContent(newContent);
       });
       persistDocumentRef(chosenPath, "local");
+      setSyncedContent(content);
+      return;
     }
-  }, [content, fileName, isRemote, saveFileAs, startWatching, persistDocumentRef]);
+
+    if (!capabilities.hasFilesystem) {
+      setSyncedContent(content);
+    }
+  }, [content, fileName, isRemote, saveFileAs, startWatching, persistDocumentRef, capabilities.hasFilesystem]);
 
   // HTML export handler (for direct keyboard shortcut)
   const handleExportHtml = useCallback(() => {
@@ -363,6 +408,7 @@ function AppShell() {
   const handleNewDocument = useCallback(() => {
     stopWatching();
     setContent("");
+    setSyncedContent("");
     setFileName(null);
     setFilePath(null);
     setIsRemote(false);
@@ -379,6 +425,7 @@ function AppShell() {
       try {
         const fileContent = await platform.readFile(selectedPath);
         setContent(fileContent);
+        setSyncedContent(fileContent);
         setIsRemote(false);
         setFilePath(selectedPath);
 
@@ -387,6 +434,7 @@ function AppShell() {
 
         startWatching(selectedPath, (newContent) => {
           setContent(newContent);
+          setSyncedContent(newContent);
         });
 
         // Persist last-opened document
@@ -399,6 +447,37 @@ function AppShell() {
     },
     [platform, setViewMode, startWatching, persistDocumentRef],
   );
+
+  const performRefreshPreview = useCallback(async () => {
+    let refreshedContent = syncedContent;
+
+    if (!isRemote && filePath && platform && capabilities.hasFilesystem) {
+      try {
+        refreshedContent = await platform.readFile(filePath);
+      } catch {
+        refreshedContent = syncedContent;
+      }
+    }
+
+    setContent(refreshedContent);
+    setSyncedContent(refreshedContent);
+    setPreviewRenderNonce((prev) => prev + 1);
+  }, [syncedContent, isRemote, filePath, platform, capabilities.hasFilesystem]);
+
+  const hasUnsavedChanges = content !== syncedContent;
+
+  const handleRefreshPreview = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setIsUnsavedChangesOpen(true);
+      return;
+    }
+    void performRefreshPreview();
+  }, [hasUnsavedChanges, performRefreshPreview]);
+
+  const handleConfirmRefresh = useCallback(() => {
+    setIsUnsavedChangesOpen(false);
+    void performRefreshPreview();
+  }, [performRefreshPreview]);
 
   // Can save: existing local file (not remote, must have a file path)
   const canSave = !isRemote && filePath !== null;
@@ -441,6 +520,7 @@ function AppShell() {
         onNewDocument={handleNewDocument}
         onSave={handleSave}
         onSaveAs={canSaveAs ? handleSaveAs : undefined}
+        onRefreshPreview={handleRefreshPreview}
         hasFilePath={filePath !== null}
         canSave={canSave || canSaveAs}
         isSaving={isSaving}
@@ -485,12 +565,14 @@ function AppShell() {
         >
           {viewMode === "view" && (
             <Preview
+              key={`preview-${previewRenderNonce}`}
               source={content}
               engineId={config.engine.activeEngine}
             />
           )}
           {viewMode === "edit" && (
             <SplitView
+              key={`split-view-${previewRenderNonce}`}
               source={content}
               onSourceChange={setContent}
               engineId={config.engine.activeEngine}
@@ -545,6 +627,95 @@ function AppShell() {
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
       />
+
+      <Modal
+        isOpen={isUnsavedChangesOpen}
+        onClose={() => setIsUnsavedChangesOpen(false)}
+        title="Unsaved Changes"
+      >
+        <div
+          data-testid="unsaved-changes-modal-content"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-4)",
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: "var(--color-text-secondary)",
+              fontSize: "var(--font-size-sm)",
+              fontFamily: "var(--font-ui)",
+            }}
+          >
+            Refreshing will discard your unsaved edits and reload the current document.
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+            <button
+              type="button"
+              aria-label="Cancel"
+              onClick={() => setIsUnsavedChangesOpen(false)}
+              className="shruggie-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 32,
+                minHeight: 32,
+                padding: "var(--space-1) var(--space-2)",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                backgroundColor: "transparent",
+                color: "var(--color-text-secondary)",
+                cursor: "pointer",
+                fontSize: "var(--font-size-sm)",
+                fontFamily: "var(--font-ui)",
+                transition: "background-color 120ms ease-out, color 120ms ease-out",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--color-bg-hover)";
+                e.currentTarget.style.color = "var(--color-text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "var(--color-text-secondary)";
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmRefresh}
+              className="shruggie-btn"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 32,
+                minHeight: 32,
+                padding: "var(--space-1) var(--space-2)",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                backgroundColor: "var(--color-error)",
+                color: "#ffffff",
+                cursor: "pointer",
+                fontSize: "var(--font-size-sm)",
+                fontFamily: "var(--font-ui)",
+                transition: "background-color 120ms ease-out",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = "brightness(0.92)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = "none";
+              }}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <OpenDialog
         isOpen={isOpenDialogOpen}

@@ -1,9 +1,15 @@
 import { useEffect, useRef } from "react";
 
 interface CliArgsCallbacks {
-  onFileOpen: (filePath: string) => void;
-  onUrlFetch: (url: string) => void;
+  onFileOpen: (filePath: string) => Promise<boolean>;
+  onUrlFetch: (url: string) => Promise<boolean>;
+  onResolved?: (result: CliArgsResolution) => void;
 }
+
+export type CliArgsResolution =
+  | { source: "none"; handled: false }
+  | { source: "file"; filePath: string; handled: boolean }
+  | { source: "url"; url: string; handled: boolean };
 
 /**
  * Queries CLI arguments from the Tauri backend on mount.
@@ -26,15 +32,20 @@ export function useCliArgs(
       .then(({ invoke }) => {
         return invoke<[string | null, string | null]>("get_cli_args");
       })
-      .then(([filePath, url]) => {
+      .then(async ([filePath, url]) => {
         if (url) {
-          callbacks.onUrlFetch(url);
+          const handled = await callbacks.onUrlFetch(url);
+          callbacks.onResolved?.({ source: "url", url, handled });
         } else if (filePath) {
-          callbacks.onFileOpen(filePath);
+          const handled = await callbacks.onFileOpen(filePath);
+          callbacks.onResolved?.({ source: "file", filePath, handled });
+        } else {
+          callbacks.onResolved?.({ source: "none", handled: false });
         }
       })
       .catch(() => {
         // Not in Tauri or command not available — ignore
+        callbacks.onResolved?.({ source: "none", handled: false });
       });
   }, [enabled, callbacks]);
 }

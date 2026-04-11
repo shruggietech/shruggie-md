@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Shruggie Markdown",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "A beautiful markdown viewer and editor for Chrome",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["*://*/*"],

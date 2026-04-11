@@ -17,7 +17,7 @@ export const defaultConfig: Config = {
   },
   preview: {
     fontFamily:
-      '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+      '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
     fontSize: 15,
     lineHeight: 1.7,
   },

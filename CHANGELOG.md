@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.6] - 2026-03-31
+## [0.3.7] - 2026-04-11
+
+### Fixed
+
+- Windows "Open With > Shruggie Markdown" now opens the selected file directly instead of showing the welcome document. CLI and OS-association file-path arguments are resolved before last-session restoration runs; successful resolution prevents restoration from overriding the argument-provided file.
+- Unordered and ordered list items now render with visible bullet and number markers in View and Edit modes. A global CSS reset was stripping `list-style`; the preview stylesheet now explicitly restores `disc/circle/square` for `ul` nesting levels and `decimal/lower-alpha/lower-roman` for `ol` nesting levels.
+- Inline code spans (`code` not inside `pre`) now render in the dedicated `--color-inline-code` token color (muted green, distinct in both light and dark themes) instead of inheriting normal paragraph text color.
+- Preview default styling now aligns with conventional GitHub markdown rendering: heading scale (`2em`/`1.5em`/…), `h1`/`h2` bottom borders, blockquote left-border with muted text, table zebra striping (transparent / `--color-bg-tertiary`), horizontal rule height, and paragraph spacing.
+
+### Changed
+
+- Settings > Preview > Font family is now a curated dropdown instead of a free-text input. The curated list contains 12 named options (Arial, Cambria, Consolas, Courier New, Georgia, Helvetica, Inter, JetBrains Mono, Roboto, System Default, Times New Roman, Verdana). The default is System Default. On load, any previously persisted value that does not match a curated entry is silently migrated to System Default.
+- Markdown Engine audit: all three engines (markdown-it, marked, remark) are confirmed functional and wired end-to-end. The remark engine uses `remarkHtml` with `sanitize: false` because XSS sanitization is handled downstream by DOMPurify. Common markdown constructs produce near-identical output across all three engines; observable differences arise in engine-specific features (typographer output in markdown-it, footnote handling in marked, AST behavior in remark).
+
+### Added
+
+- Refresh toolbar button in the Actions zone (document modes only). Clicking Refresh re-reads the current file from disk (local files) and re-renders the preview. If unsaved changes exist, a modal dialog ("Unsaved Changes") warns the user that refreshing will discard edits; the user may cancel or confirm.
+- `use-cli-args.test.ts`: 3 unit tests covering CLI argument handling (file path resolved, file path unresolvable, no argument).
+- `refresh-flow.test.tsx`: 4 integration tests covering Refresh with clean document, Refresh with unsaved changes (modal shown), modal Cancel no-op, and modal confirm discards edits.
+- `preview-fonts.test.tsx`: 17 tests covering font list completeness, default value, and Settings > Preview font family dropdown rendering and persistence.
+
+
 
 ### Fixed
 

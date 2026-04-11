@@ -27,6 +27,7 @@
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
   --color-text-tertiary: var(--color-text-tertiary);
+  --color-inline-code: var(--color-inline-code);
 
   /* Colors - accent */
   --color-accent: var(--color-accent);

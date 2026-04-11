@@ -3,6 +3,7 @@ import { useConfig } from "../../config/store";
 import { useTheme } from "../../hooks/useTheme";
 import { Input } from "../common/Input";
 import { Select } from "../common/Select";
+import { PREVIEW_FONTS } from "../../config/previewFonts";
 import { Toggle } from "../common/Toggle";
 import { Button } from "../common/Button";
 import { Tooltip } from "../common/Tooltip";
@@ -458,10 +459,10 @@ export function Settings({ capabilities }: SettingsProps) {
         <div style={fieldRowStyle}>
           <div><span style={fieldLabelStyle}>Font family</span><div style={fieldHintStyle}>CSS font stack used in the preview pane</div></div>
           <div style={fieldControlStyle}>
-            <Input
+            <Select
               value={config.preview.fontFamily}
-              onChange={(e) => updateConfig("preview", { fontFamily: e.target.value })}
-              placeholder={config.preview.fontFamily}
+              onChange={(v) => updateConfig("preview", { fontFamily: v })}
+              options={PREVIEW_FONTS}
             />
           </div>
         </div>
@@ -526,10 +527,10 @@ export function Settings({ capabilities }: SettingsProps) {
       {/* ── Section 4: Markdown Engine ──────────────────────────────────── */}
       <section data-testid="settings-engine" style={cardStyle}>
         <h2 style={headingStyle}>Markdown Engine</h2>
-        <p style={descriptionStyle}>Choose the rendering engine for markdown content.</p>
+        <p style={descriptionStyle}>Choose the rendering engine for markdown content. Common documents render similarly, but edge cases like typographer output, footnotes, and task-list HTML can differ.</p>
 
         <div style={fieldRowStyle}>
-          <div><span style={fieldLabelStyle}>Engine</span><div style={fieldHintStyle}>Markdown-to-HTML rendering library</div></div>
+          <div><span style={fieldLabelStyle}>Engine</span><div style={fieldHintStyle}>Markdown-to-HTML rendering library (same sanitizer and preview theme for all engines)</div></div>
           <div style={fieldControlStyle}>
             <Select
               value={config.engine.activeEngine}

@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { Config } from "../types/config";
 import { defaultConfig } from "./defaults";
+import { PREVIEW_FONTS, SYSTEM_DEFAULT_FONT_VALUE } from "./previewFonts";
 import type { PlatformAdapter } from "../platform/platform";
 import type { StorageAdapter } from "../storage/types";
 import { flattenConfig, unflattenConfig } from "../storage/config-utils";
@@ -47,6 +48,11 @@ function mergeWithDefaults(loaded: Record<string, unknown>): Config {
     result.general.lastViewMode = "view";
   } else if (lvm === "split-view") {
     result.general.lastViewMode = "edit";
+  }
+
+  // Migrate preview font family: unknown values fall back to system default
+  if (!PREVIEW_FONTS.some((f) => f.value === result.preview.fontFamily)) {
+    result.preview.fontFamily = SYSTEM_DEFAULT_FONT_VALUE;
   }
 
   return result;

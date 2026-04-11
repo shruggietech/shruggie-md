@@ -18,6 +18,7 @@ export interface ToolbarProps {
   onNewDocument?: () => void;
   onSave?: () => void;
   onSaveAs?: () => void;
+  onRefreshPreview?: () => void;
   hasFilePath?: boolean;
   canSave?: boolean;
   isSaving?: boolean;
@@ -94,6 +95,7 @@ export function Toolbar({
   onNewDocument,
   onSave,
   onSaveAs,
+  onRefreshPreview,
   hasFilePath = false,
   canSave = false,
   isSaving = false,
@@ -313,7 +315,7 @@ export function Toolbar({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "var(--space-2)",
+          gap: "var(--space-1)",
         }}
       >
         {isDocumentView && (
@@ -346,6 +348,15 @@ export function Toolbar({
                 showLabel={showButtonLabels}
               />
             )}
+            {onRefreshPreview && (
+              <Button
+                icon={RefreshCw}
+                tooltip="Refresh preview"
+                label="Refresh"
+                showLabel={showButtonLabels}
+                onClick={onRefreshPreview}
+              />
+            )}
             {onExport && (
               <Button
                 icon={FileDown}
@@ -365,7 +376,6 @@ export function Toolbar({
               width: 1,
               height: 20,
               backgroundColor: "var(--color-border-subtle)",
-              margin: "0 var(--space-1)",
             }}
           />
         )}

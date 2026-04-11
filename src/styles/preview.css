@@ -4,10 +4,11 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 0 var(--space-8);
-  font-family: var(--font-preview);
+  font-family: var(--font-preview, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji");
   font-size: var(--font-size-preview);
   line-height: var(--line-height-preview);
   color: var(--color-text-primary);
+  word-wrap: break-word;
 }
 
 /* ── Headings ──────────────────────────────────────────────── */
@@ -18,38 +19,39 @@
 .preview-content h4,
 .preview-content h5,
 .preview-content h6 {
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
+  margin-top: 24px;
+  margin-bottom: 16px;
   font-weight: var(--font-weight-semibold);
   line-height: 1.25;
 }
 
 .preview-content h1 {
-  font-size: 28px;
+  font-size: 2em;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .preview-content h2 {
-  font-size: 22px;
+  font-size: 1.5em;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .preview-content h3 {
-  font-size: 18px;
+  font-size: 1.25em;
 }
 
 .preview-content h4 {
-  font-size: 16px;
+  font-size: 1em;
 }
 
 .preview-content h5 {
-  font-size: 15px;
+  font-size: 0.875em;
 }
 
 .preview-content h6 {
-  font-size: 13px;
+  font-size: 0.85em;
+  color: var(--color-text-secondary);
 }
 
 /* ── Paragraphs ────────────────────────────────────────────── */
@@ -57,13 +59,15 @@
 .preview-content p {
   font-size: var(--font-size-preview);
   line-height: var(--line-height-preview);
-  margin-bottom: 1em;
+  margin-top: 0;
+  margin-bottom: 16px;
 }
 
 /* ── Code blocks (pre > code) ──────────────────────────────── */
 
 .preview-content pre {
-  margin-bottom: 1em;
+  margin-top: 0;
+  margin-bottom: 16px;
   overflow-x: auto;
 }
 
@@ -84,16 +88,18 @@
   background: var(--color-bg-hover);
   padding: 2px 6px;
   border-radius: 3px;
+  border: 1px solid var(--color-border-subtle);
   font-family: var(--font-preview-mono);
-  font-size: 0.9em;
+  font-size: 0.85em;
+  color: var(--color-inline-code);
 }
 
 /* ── Blockquotes ───────────────────────────────────────────── */
 
 .preview-content blockquote {
-  margin: 0 0 1em 0;
-  padding-left: var(--space-4);
-  border-left: 4px solid var(--color-border-primary);
+  margin: 0 0 16px 0;
+  padding: 0 1em;
+  border-left: 0.25em solid var(--color-border-primary);
   color: var(--color-text-secondary);
 }
 
@@ -106,7 +112,8 @@
 .preview-content table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1em;
+  margin-top: 0;
+  margin-bottom: 16px;
 }
 
 .preview-content thead th {
@@ -117,8 +124,8 @@
 
 .preview-content th,
 .preview-content td {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-primary);
+  padding: 6px 13px;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .preview-content tbody tr:nth-child(even) {
@@ -148,20 +155,51 @@
 /* ── Horizontal rules ──────────────────────────────────────── */
 
 .preview-content hr {
-  border: none;
-  border-top: 1px solid var(--color-border-subtle);
-  margin: var(--space-6) 0;
+  height: 0.25em;
+  border: 0;
+  background-color: var(--color-border-subtle);
+  margin: 24px 0;
 }
 
 /* ── Lists ─────────────────────────────────────────────────── */
 
 .preview-content ul,
 .preview-content ol {
+  margin-top: 0;
+  margin-bottom: 16px;
   padding-left: 2em;
-  margin-bottom: 1em;
+}
+
+.preview-content ul {
+  list-style-type: disc;
+}
+
+.preview-content ul ul {
+  list-style-type: circle;
+}
+
+.preview-content ul ul ul {
+  list-style-type: square;
+}
+
+.preview-content ol {
+  list-style-type: decimal;
+}
+
+.preview-content ol ol {
+  list-style-type: lower-alpha;
+}
+
+.preview-content ol ol ol {
+  list-style-type: lower-roman;
 }
 
 .preview-content li {
+  margin-top: 0.25em;
+}
+
+.preview-content li > p {
+  margin-top: 0.25em;
   margin-bottom: 0.25em;
 }
 
