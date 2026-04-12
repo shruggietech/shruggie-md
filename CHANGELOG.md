@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `refresh-flow.test.tsx`: 4 integration tests covering Refresh with clean document, Refresh with unsaved changes (modal shown), modal Cancel no-op, and modal confirm discards edits.
 - `preview-fonts.test.tsx`: 17 tests covering font list completeness, default value, and Settings > Preview font family dropdown rendering and persistence.
 
-
+## [0.3.6] - 2026-03-31
 
 ### Fixed
 
@@ -248,7 +248,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CodeMirror language-data includes all ~100 language grammars (~1.6 MB vendor chunk). A curated subset would reduce bundle size.
 
-[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/shruggietech/shruggie-md/compare/v0.3.7...HEAD
+[0.3.7]: https://github.com/shruggietech/shruggie-md/compare/v0.3.6...v0.3.7
+[0.3.6]: https://github.com/shruggietech/shruggie-md/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/shruggietech/shruggie-md/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/shruggietech/shruggie-md/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/shruggietech/shruggie-md/compare/v0.3.2...v0.3.3
