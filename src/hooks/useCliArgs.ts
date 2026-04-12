@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 interface CliArgsCallbacks {
-  onFileOpen: (filePath: string) => Promise<boolean>;
+  onFileOpen: (filePath: string, content: string | null) => Promise<boolean>;
   onUrlFetch: (url: string) => Promise<boolean>;
   onResolved?: (result: CliArgsResolution) => void;
 }
@@ -30,14 +30,14 @@ export function useCliArgs(
     // Dynamically import Tauri invoke to avoid errors in non-Tauri envs
     import("@tauri-apps/api/core")
       .then(({ invoke }) => {
-        return invoke<[string | null, string | null]>("get_cli_args");
+        return invoke<[string | null, string | null, string | null]>("get_cli_args");
       })
-      .then(async ([filePath, url]) => {
+      .then(async ([filePath, url, fileContent]) => {
         if (url) {
           const handled = await callbacks.onUrlFetch(url);
           callbacks.onResolved?.({ source: "url", url, handled });
         } else if (filePath) {
-          const handled = await callbacks.onFileOpen(filePath);
+          const handled = await callbacks.onFileOpen(filePath, fileContent ?? null);
           callbacks.onResolved?.({ source: "file", filePath, handled });
         } else {
           callbacks.onResolved?.({ source: "none", handled: false });

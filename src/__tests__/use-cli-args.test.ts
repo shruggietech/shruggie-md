@@ -17,7 +17,8 @@ describe("useCliArgs", () => {
 
   it("handles a valid startup file path", async () => {
     const startupPath = "C:/docs/readme.md";
-    invokeMock.mockResolvedValue([startupPath, null]);
+    const startupContent = "# Hello World";
+    invokeMock.mockResolvedValue([startupPath, null, startupContent]);
 
     const onFileOpen = vi.fn().mockResolvedValue(true);
     const onUrlFetch = vi.fn().mockResolvedValue(false);
@@ -28,7 +29,7 @@ describe("useCliArgs", () => {
     );
 
     await waitFor(() => {
-      expect(onFileOpen).toHaveBeenCalledWith(startupPath);
+      expect(onFileOpen).toHaveBeenCalledWith(startupPath, startupContent);
     });
 
     expect(onResolved).toHaveBeenCalledWith({
@@ -41,7 +42,7 @@ describe("useCliArgs", () => {
 
   it("reports fallback when startup file path is missing or unreadable", async () => {
     const startupPath = "C:/docs/missing.md";
-    invokeMock.mockResolvedValue([startupPath, null]);
+    invokeMock.mockResolvedValue([startupPath, null, null]);
 
     const onFileOpen = vi.fn().mockResolvedValue(false);
     const onUrlFetch = vi.fn().mockResolvedValue(false);
@@ -59,12 +60,12 @@ describe("useCliArgs", () => {
       });
     });
 
-    expect(onFileOpen).toHaveBeenCalledWith(startupPath);
+    expect(onFileOpen).toHaveBeenCalledWith(startupPath, null);
     expect(onUrlFetch).not.toHaveBeenCalled();
   });
 
   it("reports no startup argument when path is absent", async () => {
-    invokeMock.mockResolvedValue([null, null]);
+    invokeMock.mockResolvedValue([null, null, null]);
 
     const onFileOpen = vi.fn().mockResolvedValue(false);
     const onUrlFetch = vi.fn().mockResolvedValue(false);

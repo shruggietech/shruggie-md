@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Relocated `window-state-close-fix.md` session artifact from repo memory to `.handoff/session-artifacts/20260329-002/`, aligning it with its originating sprint (20260329-002, v0.3.3).
 
+## [0.3.8] - 2026-04-13
+
+### Fixed
+
+- Windows "Open With" file association now works correctly. The v0.3.7 fix captured CLI arguments but `readTextFile()` from `@tauri-apps/plugin-fs` silently failed because the default FS scope only permits app-specific directories. The Rust backend now grants dynamic FS scope access for the CLI file path at startup via `FsExt::fs_scope().allow_file()` and pre-reads the file content via `std::fs::read_to_string()` as a fallback, bypassing the FS plugin scope entirely.
+
 ## [0.3.7] - 2026-04-11
 
 ### Fixed

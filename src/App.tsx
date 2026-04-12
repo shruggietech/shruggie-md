@@ -134,10 +134,12 @@ function AppShell() {
 
   // CLI arguments: open file or URL from command line
   const handleCliFileOpen = useCallback(
-    async (cliPath: string) => {
+    async (cliPath: string, preReadContent: string | null) => {
       if (!platform) return false;
       try {
-        const fileContent = await platform.readFile(cliPath);
+        // Use pre-read content from Rust backend (bypasses FS plugin scope)
+        // or fall back to platform.readFile (works if scope was granted).
+        const fileContent = preReadContent ?? await platform.readFile(cliPath);
         setContent(fileContent);
         setSyncedContent(fileContent);
         setIsRemote(false);
