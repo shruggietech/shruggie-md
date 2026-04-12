@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Relocated `window-state-close-fix.md` session artifact from repo memory to `.handoff/session-artifacts/20260329-002/`, aligning it with its originating sprint (20260329-002, v0.3.3).
+
 ## [0.3.7] - 2026-04-11
 
 ### Fixed

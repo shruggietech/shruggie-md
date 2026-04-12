@@ -1,0 +1,3 @@
+- useWindowState close persistence is timeout-guarded at 2s via Promise.race.
+- useWindowState saves geometry on onMoved/onResized with 1000ms debounce and cleans listeners/timer on unmount.
+- Hook tests are in src/__tests__/window-state.test.ts; avoid waitFor with fake timers (flush microtasks with act instead).
